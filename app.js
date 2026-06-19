@@ -331,9 +331,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const pinkyTip1 = hand1[20];
         const pinkyTip2 = hand2[20];
         
-        // Calculate stable knuckle-relative sizes
-        const palm1 = getDistance(hand1[5], hand1[17]) * 1.15;
-        const palm2 = getDistance(hand2[5], hand2[17]) * 1.15;
+        const palm1 = getDistance(wrist1, hand1[9]);
+        const palm2 = getDistance(wrist2, hand2[9]);
         const avgPalm = (palm1 + palm2) / 2;
         
         if (avgPalm === 0) return null;
@@ -354,8 +353,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // 2. "Book" / "Open Book" 📖: Wrists close, open palms side-by-side
         if (wristsDist < avgPalm * 0.6 && pinkyTip1 && pinkyTip2) {
             const pinkyDist = getDistance(pinkyTip1, pinkyTip2);
-            const isHand1Open = getDistance(indexTip1, hand1[5]) > palm1 * 0.45 && getDistance(hand1[12], hand1[9]) > palm1 * 0.45;
-            const isHand2Open = getDistance(indexTip2, hand2[5]) > palm2 * 0.45 && getDistance(hand2[12], hand2[9]) > palm2 * 0.45;
+            const isHand1Open = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1);
+            const isHand2Open = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2);
             
             if (pinkyDist < avgPalm * 0.6 && isHand1Open && isHand2Open) {
                 return {
@@ -368,10 +367,10 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // 3. "Friend" 🤝: Index fingers pointing towards each other, tips close
         if (indexTipsDist < avgPalm * 0.5) {
-            const isIndex1Extended = getDistance(indexTip1, hand1[5]) > palm1 * 0.45;
-            const isIndex2Extended = getDistance(indexTip2, hand2[5]) > palm2 * 0.45;
-            const isOthersFolded1 = getDistance(hand1[12], hand1[9]) < palm1 * 0.45;
-            const isOthersFolded2 = getDistance(hand2[12], hand2[9]) < palm2 * 0.45;
+            const isIndex1Extended = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1);
+            const isIndex2Extended = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2);
+            const isOthersFolded1 = getDistance(hand1[12], wrist1) < getDistance(hand1[10], wrist1);
+            const isOthersFolded2 = getDistance(hand2[12], wrist2) < getDistance(hand2[10], wrist2);
             
             if (isIndex1Extended && isIndex2Extended && isOthersFolded1 && isOthersFolded2) {
                 return {
