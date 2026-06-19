@@ -386,7 +386,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- V5: Dynamic Motion Gesture Analyzer ---
-    // --- V5: Dynamic Motion Gesture Analyzer ---
     function detectMotionGesture(landmarks) {
         if (!landmarks || landmarks.length < 21) return null;
         
@@ -399,20 +398,25 @@ document.addEventListener("DOMContentLoaded", () => {
         
         if (motionHistory.length < 10) return null;
         
+        // Calculate the spatial span of the movement in the buffer (ignores accumulated jitter)
+        let minX = 1, maxX = 0;
+        let minY = 1, maxY = 0;
+        for (let i = 0; i < motionHistory.length; i++) {
+            const pt = motionHistory[i];
+            if (pt.x < minX) minX = pt.x;
+            if (pt.x > maxX) maxX = pt.x;
+            if (pt.y < minY) minY = pt.y;
+            if (pt.y > maxY) maxY = pt.y;
+        }
+        const xSpan = maxX - minX;
+        const ySpan = maxY - minY;
+        
         let directionChangesX = 0;
         let prevDeltaX = 0;
-        let totalXMovement = 0;
-        let totalYMovement = 0;
-        
-        const MIN_DELTA = 0.005; // Ignore small noise/jitter
+        const MIN_DELTA = 0.008; // Ignore noise/jitter
         
         for (let i = 1; i < motionHistory.length; i++) {
             const dx = motionHistory[i].x - motionHistory[i - 1].x;
-            const dy = motionHistory[i].y - motionHistory[i - 1].y;
-            
-            totalXMovement += Math.abs(dx);
-            totalYMovement += Math.abs(dy);
-            
             if (prevDeltaX !== 0) {
                 if ((dx > MIN_DELTA && prevDeltaX < -MIN_DELTA) || (dx < -MIN_DELTA && prevDeltaX > MIN_DELTA)) {
                     directionChangesX++;
@@ -423,8 +427,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        // 1. Waving horizontal movement check for "Hello" (relaxed X/Y ratio and lower minimum displacement)
-        if (directionChangesX >= 2 && totalXMovement > totalYMovement * 1.1 && totalXMovement > 0.06) {
+        // 1. Waving horizontal movement check for "Hello"
+        if (directionChangesX >= 2 && xSpan > ySpan * 1.2 && xSpan > 0.07) {
             return {
                 name: "Hello",
                 emoji: "👋",
@@ -447,7 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        if (directionChangesY >= 2 && totalYMovement > totalXMovement * 1.1 && totalYMovement > 0.06) {
+        if (directionChangesY >= 2 && ySpan > xSpan * 1.2 && ySpan > 0.07) {
             return {
                 name: "Yes",
                 emoji: "✊",
@@ -457,17 +461,8 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // 3. Circular rubbing movement check for "Please"
         if (motionHistory.length >= 15) {
-            let minX = 1, maxX = 0, minY = 1, maxY = 0;
-            motionHistory.forEach(pt => {
-                if (pt.x < minX) minX = pt.x;
-                if (pt.x > maxX) maxX = pt.x;
-                if (pt.y < minY) minY = pt.y;
-                if (pt.y > maxY) maxY = pt.y;
-            });
-            const dxSpan = maxX - minX;
-            const dySpan = maxY - minY;
-            const ratio = dxSpan / (dySpan || 1);
-            if (dxSpan > 0.03 && dySpan > 0.03 && ratio > 0.5 && ratio < 2.0 && directionChangesX >= 1 && directionChangesY >= 1) {
+            const ratio = xSpan / (ySpan || 1);
+            if (xSpan > 0.05 && ySpan > 0.05 && ratio > 0.6 && ratio < 1.7 && directionChangesX >= 1 && directionChangesY >= 1) {
                 return {
                     name: "Please",
                     emoji: "🙏",
@@ -482,11 +477,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // Helper to check if hand is actively moving (for suppressing static gesture false-positives)
     function isHandMoving() {
         if (motionHistory.length < 5) return false;
-        let movement = 0;
-        for (let i = motionHistory.length - 5; i < motionHistory.length - 1; i++) {
-            movement += getDistance(motionHistory[i], motionHistory[i + 1]);
+        let minX = 1, maxX = 0;
+        let minY = 1, maxY = 0;
+        for (let i = motionHistory.length - 5; i < motionHistory.length; i++) {
+            const pt = motionHistory[i];
+            if (pt.x < minX) minX = pt.x;
+            if (pt.x > maxX) maxX = pt.x;
+            if (pt.y < minY) minY = pt.y;
+            if (pt.y > maxY) maxY = pt.y;
         }
-        return movement > 0.025;
+        const xSpan = maxX - minX;
+        const ySpan = maxY - minY;
+        return xSpan > 0.025 || ySpan > 0.025;
     }
 
     // --- MediaPipe Callback & Theme-Driven Draw ---
