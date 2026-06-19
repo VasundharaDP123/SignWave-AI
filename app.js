@@ -60,7 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let stream = null;
     let cameraActive = false;
     let currentGesture = null;
-    let sentenceWords = [];
     let mediaPipeHands = null;
     let fontMultiplier = 1.0;
     let autoSpeakEnabled = true;
@@ -577,12 +576,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- Multi-Language Translation ---
 
     async function updateTranslationDisplay() {
-        if (sentenceWords.length === 0) {
+        const sentenceText = sentenceContainer.value.trim();
+        if (sentenceText.length === 0) {
             translationPreview.innerHTML = '<span style="color: var(--text-muted);">Original translation...</span>';
             return;
         }
 
-        const sentenceText = sentenceWords.join(" ");
         const targetLang = translationLangSelect.value;
 
         if (targetLang === "en") {
@@ -606,7 +605,9 @@ document.addEventListener("DOMContentLoaded", () => {
             wordToAdd = wordToAdd.split(" / ")[0];
         }
 
-        sentenceWords.push(wordToAdd);
+        const currentText = sentenceContainer.value.trim();
+        sentenceContainer.value = currentText ? `${currentText} ${wordToAdd}` : wordToAdd;
+        
         renderSentence();
         updateTranslationDisplay();
 
@@ -616,34 +617,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderSentence() {
-        sentenceContainer.innerHTML = "";
-        
-        if (sentenceWords.length === 0) {
-            sentenceContainer.innerHTML = '<span class="sentence-display-placeholder">Assembled signs will display here...</span>';
-            btnSpeakSentence.disabled = true;
-            btnClearSentence.disabled = true;
-            return;
-        }
-
-        btnSpeakSentence.disabled = false;
-        btnClearSentence.disabled = false;
-
-        sentenceWords.forEach((word) => {
-            const bubble = document.createElement("div");
-            bubble.className = "word-bubble";
-            bubble.textContent = word;
-            sentenceContainer.appendChild(bubble);
-        });
+        const hasText = sentenceContainer.value.trim().length > 0;
+        btnSpeakSentence.disabled = !hasText;
+        btnClearSentence.disabled = !hasText;
     }
 
     function clearSentence() {
-        sentenceWords = [];
+        sentenceContainer.value = "";
         renderSentence();
         updateTranslationDisplay();
     }
 
     async function speakSentence() {
-        const text = sentenceWords.join(" ");
+        const text = sentenceContainer.value.trim();
         if (!text) return;
 
         const targetLang = translationLangSelect.value;
@@ -754,7 +740,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 speakSentence();
                 break;
             case "delete_word":
-                sentenceWords.pop();
+                const words = sentenceContainer.value.trim().split(" ");
+                words.pop();
+                sentenceContainer.value = words.join(" ");
                 renderSentence();
                 updateTranslationDisplay();
                 appendChatMessage("Voice Command", "Deleted last word.", "vocalist");
@@ -803,6 +791,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Translation Selector
     translationLangSelect.addEventListener("change", updateTranslationDisplay);
+
+    // Typing and Input Listener for Textarea
+    sentenceContainer.addEventListener("input", () => {
+        renderSentence();
+        updateTranslationDisplay();
+    });
 
     // Accessibility binds
     toggleContrast.addEventListener("change", (e) => {
