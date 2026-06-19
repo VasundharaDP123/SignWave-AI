@@ -13,6 +13,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 <body>
+    <!-- Shifting organic mesh background layers (rendered behind main dashboard) -->
+    <div class="mesh-bg-gradient"></div>
+    <div class="mesh-bg-orb orb-1"></div>
+    <div class="mesh-bg-orb orb-2"></div>
+    <div class="mesh-bg-orb orb-3"></div>
+
     <div class="app-wrapper">
         <!-- Header Section -->
         <header>
@@ -29,13 +35,13 @@
             </div>
         </header>
 
-        <!-- Main Dashboard Layout -->
+        <!-- Main Dashboard Grid Layout -->
         <main class="dashboard-grid">
             
-            <!-- Left Panel: Sign Dictionary & SignWave Academy (Practice) -->
+            <!-- Left Panel: Dictionary Catalog & Practice Academy -->
             <section class="glass-panel" style="gap: 24px;" aria-label="Learning and Reference">
                 
-                <!-- Tab 1: SignWave Academy (Practice Center) -->
+                <!-- Tab 1: SignWave Academy (Practice Game) -->
                 <div>
                     <div class="panel-header">
                         <h2>🎓 SignWave Academy</h2>
@@ -78,7 +84,7 @@
                     </div>
                 </div>
 
-                <!-- Tab 2: Dictionary Guide -->
+                <!-- Tab 2: Reference Dictionary -->
                 <div>
                     <div class="panel-header">
                         <h2>📚 Reference Dictionary</h2>
@@ -86,6 +92,10 @@
                     <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; margin-bottom: 12px;">
                         Supported signs catalog. Click to preview target finger shapes.
                     </p>
+                    
+                    <!-- V3: Search Dictionary bar -->
+                    <input type="text" id="dictionary-search" placeholder="🔍 Search vocabulary..." style="width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: inherit; font-size: 0.85rem; margin-bottom: 12px; outline: none; transition: var(--transition);">
+
                     <div class="guide-list" id="dictionary-guide">
                         <!-- Custom gestures list injected at runtime above system dictionary -->
                         <div id="custom-dictionary-header" style="display:none; font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-top: 8px; text-transform: uppercase;">Custom Registered Vocabulary</div>
@@ -140,7 +150,7 @@
                     </div>
                 </div>
 
-                <!-- Dynamic Custom Gesture Studio (NEW) -->
+                <!-- Dynamic Custom Gesture Studio -->
                 <div class="glass-panel" style="padding: 16px;">
                     <div class="panel-header" style="padding-bottom: 8px;">
                         <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">🏷️ Custom Gesture Studio</h3>
@@ -172,13 +182,24 @@
                 <!-- Sentence Assembling Dashboard -->
                 <div class="glass-panel sentence-builder-panel">
                     <div class="panel-header">
-                        <h2>✍️ Sentence Timeline</h2>
+                        <h2>✍8 Sentence Timeline</h2>
+                    </div>
+
+                    <!-- V3: Emergency/Quick Phrases Grid -->
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(0, 0, 0, 0.15); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">⚡ Quick phrases</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                            <button class="btn-quick-phrase" data-phrase="Need Help" style="padding: 6px; font-size: 0.8rem; justify-content: center; background: rgba(139, 92, 246, 0.08); border-color: rgba(139, 92, 246, 0.2);">🤝 Help</button>
+                            <button class="btn-quick-phrase" data-phrase="Thank You" style="padding: 6px; font-size: 0.8rem; justify-content: center; background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2);">❤️ Thanks</button>
+                            <button class="btn-quick-phrase" data-phrase="I need water" style="padding: 6px; font-size: 0.8rem; justify-content: center; background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.2);">💧 Water</button>
+                            <button class="btn-quick-phrase" data-phrase="Emergency" style="padding: 6px; font-size: 0.8rem; justify-content: center; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #fca5a5;">🚨 Alarm</button>
+                        </div>
                     </div>
                     
-                    <!-- Assembled words -->
+                    <!-- Assembled words / Textarea -->
                     <textarea class="sentence-display-area" id="sentence-container" placeholder="Type words here, click dictionary signs, or use camera to build your sentence..."></textarea>
 
-                    <!-- Live Translation HUD (NEW) -->
+                    <!-- Live Translation HUD -->
                     <div style="background: rgba(139, 92, 246, 0.04); border: 1px solid rgba(139, 92, 246, 0.15); padding: 10px 14px; border-radius: var(--radius-sm);">
                         <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Translated Output</div>
                         <div id="translation-preview" style="font-size: 0.95rem; font-weight: 500; color: var(--accent); min-height: 22px; margin-top: 4px;">Original English sentence...</div>
@@ -197,10 +218,12 @@
             <!-- Right Panel: Voice Translation Chat & Settings -->
             <section class="glass-panel chat-panel" aria-label="Voice Translation Hub">
                 <div>
+                    <!-- V3: Added Export Chat button -->
                     <div class="panel-header">
-                        <h2>💬 Translation & Voice Assist</h2>
+                        <h2>💬 Translation & Voice</h2>
+                        <button id="btn-export-chat" style="padding: 4px 8px; font-size: 0.75rem; background: rgba(255,255,255,0.05); border-radius: var(--radius-sm);" aria-label="Export chat log">📤 Export Log</button>
                     </div>
-                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px;">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px; margin-top: 6px;">
                         For the hearing partner: speak into the microphone to display your words to the signer.
                     </p>
                     
@@ -213,20 +236,26 @@
                     </div>
                 </div>
 
-                <!-- Microphone Controller & Settings -->
+                <!-- Microphone Controller & Wave Visualizer -->
                 <div style="display: flex; flex-direction: column; gap: 16px;">
                     <div class="mic-control-card">
                         <button id="btn-mic-toggle" class="mic-button" aria-label="Toggle Voice Input">🎤</button>
+                        
+                        <!-- V3: Live Audio Waveform Canvas -->
+                        <div style="height: 30px; display: flex; align-items: center; justify-content: center; margin-top: 4px; margin-bottom: 4px; width: 100%;">
+                            <canvas id="voice-wave-canvas" width="180" height="30" style="display: none; width: 180px; height: 30px;"></canvas>
+                        </div>
+
                         <div id="mic-status" class="mic-status-text">Click microphone to translate voice response</div>
                         <div class="voice-command-hint">
                             Voice controls: <strong>"clear sentence"</strong>, <strong>"speak sentence"</strong>, <strong>"backspace"</strong>
                         </div>
                     </div>
 
-                    <!-- Accessibility & Multi-lingual Settings -->
+                    <!-- Accessibility, Accent, and Custom Voice Settings -->
                     <div class="accessibility-settings">
                         
-                        <!-- Language Translator selector (NEW) -->
+                        <!-- Language Translator selector -->
                         <div class="setting-row">
                             <span class="setting-label">🌐 Output Speech Language</span>
                             <select id="translation-lang-select" style="padding: 4px 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.8rem; font-family: inherit;">
@@ -238,6 +267,25 @@
                             </select>
                         </div>
                         
+                        <!-- V3: Custom OS Voice Selector (shown when voices loaded) -->
+                        <div class="setting-row" id="voice-profile-row" style="display: none;">
+                            <span class="setting-label">👤 Voice Profile</span>
+                            <select id="voice-profile-select" style="max-width: 170px; padding: 4px 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.8rem; font-family: inherit; outline: none;">
+                                <!-- Local voices populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- V3: Skeleton Custom theme selector -->
+                        <div class="setting-row">
+                            <span class="setting-label">🎨 Skeleton Color Theme</span>
+                            <select id="theme-select" style="padding: 4px 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.8rem; font-family: inherit;">
+                                <option value="cyberpunk">Cyberpunk (Neon)</option>
+                                <option value="gold">Volt Gold</option>
+                                <option value="emerald">Emerald Sea</option>
+                                <option value="ice">Ice Indigo</option>
+                            </select>
+                        </div>
+                        
                         <div class="setting-row">
                             <span class="setting-label">🕶️ High Contrast Display</span>
                             <label class="switch">
@@ -245,6 +293,7 @@
                                 <span class="slider"></span>
                             </label>
                         </div>
+                        
                         <div class="setting-row">
                             <span class="setting-label">🔤 Display Text Size</span>
                             <div class="btn-group">
@@ -252,6 +301,7 @@
                                 <button id="btn-font-inc" aria-label="Enlarge Text">A+</button>
                             </div>
                         </div>
+                        
                         <div class="setting-row">
                             <span class="setting-label">🔊 Auto-Speak Sign Additions</span>
                             <label class="switch">
@@ -265,6 +315,7 @@
 
         </main>
     </div>
+
     <!-- Application Scripts -->
     <script src="gestures.js"></script>
     <script src="speech.js"></script>

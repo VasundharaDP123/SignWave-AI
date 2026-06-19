@@ -1,8 +1,8 @@
 /**
  * SignWave - Speech & Translation Module
  * 
- * Handles Text-to-Speech (TTS) with regional accents, Speech-to-Text (STT) 
- * voice controls, and multi-language API translation (using MyMemory API).
+ * Handles Text-to-Speech (TTS), Multi-Language translations, Speech Recognition
+ * voice controls, and Web Audio API Analyser piping for dynamic visualizers.
  */
 
 class SpeechService {
@@ -10,13 +10,20 @@ class SpeechService {
         this.synth = window.speechSynthesis;
         this.recognition = null;
         this.isListening = false;
-        this.selectedVoice = null;
+        this.selectedVoice = null; // System default matching language
+        this.customVoice = null;   // User selected personality voice
         
+        // Web Audio components for visualizer
+        this.audioContext = null;
+        this.audioStream = null;
+        this.audioSource = null;
+        this.analyser = null;
+
         this.initSynthesis();
         this.initRecognition();
     }
 
-    // --- Text-to-Speech (TTS) ---
+    // --- Text-to-Speech (TTS) & Custom Voices ---
 
     initSynthesis() {
         if (!this.synth) {
@@ -37,6 +44,17 @@ class SpeechService {
         }
     }
 
+    getAllSystemVoices() {
+        if (!this.synth) return [];
+        return this.synth.getVoices();
+    }
+
+    setCustomVoice(voiceName) {
+        if (!this.synth) return;
+        const voices = this.synth.getVoices();
+        this.customVoice = voices.find(v => v.name === voiceName) || null;
+    }
+
     speak(text, langCode = 'en-US', onStart, onEnd, onError) {
         if (!this.synth) return;
         
@@ -45,24 +63,30 @@ class SpeechService {
 
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // Match voice with the target language code
-        const voices = this.synth.getVoices();
-        let voice = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase()));
-        
-        if (!voice) {
-            const baseLang = langCode.split("-")[0];
-            voice = voices.find(v => v.lang.toLowerCase().startsWith(baseLang.toLowerCase()));
-        }
-        
-        if (voice) {
-            utterance.voice = voice;
-            utterance.lang = voice.lang;
-        } else if (this.selectedVoice) {
-            utterance.voice = this.selectedVoice;
-            utterance.lang = this.selectedVoice.lang;
+        // Prioritize manually selected custom voice
+        if (this.customVoice) {
+            utterance.voice = this.customVoice;
+            utterance.lang = this.customVoice.lang;
+        } else {
+            // Fallback: match voice with the target language code
+            const voices = this.synth.getVoices();
+            let voice = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase()));
+            
+            if (!voice) {
+                const baseLang = langCode.split("-")[0];
+                voice = voices.find(v => v.lang.toLowerCase().startsWith(baseLang.toLowerCase()));
+            }
+            
+            if (voice) {
+                utterance.voice = voice;
+                utterance.lang = voice.lang;
+            } else if (this.selectedVoice) {
+                utterance.voice = this.selectedVoice;
+                utterance.lang = this.selectedVoice.lang;
+            }
         }
 
-        utterance.rate = 0.95; // Clear speed
+        utterance.rate = 0.95; 
         utterance.pitch = 1.0;
 
         if (onStart) utterance.onstart = onStart;
@@ -78,6 +102,55 @@ class SpeechService {
         }
     }
 
+    // --- Web Audio Analyser piping for Canvas Visualizer ---
+
+    async startVisualizerStream(onAudioData) {
+        if (this.audioContext) this.stopVisualizerStream();
+
+        try {
+            this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            
+            // Audio context configuration
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            this.audioContext = new AudioContextClass();
+            this.audioSource = this.audioContext.createMediaStreamSource(this.audioStream);
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = 128; // Small size for responsive waveforms
+            
+            this.audioSource.connect(this.analyser);
+            
+            const bufferLength = this.analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            const processData = () => {
+                if (!this.isListening) {
+                    this.stopVisualizerStream();
+                    return;
+                }
+                this.analyser.getByteFrequencyData(dataArray);
+                if (onAudioData) {
+                    onAudioData(dataArray);
+                }
+                requestAnimationFrame(processData);
+            };
+            
+            processData();
+        } catch (err) {
+            console.warn("Could not start micro analysis context for wave visualizer:", err);
+        }
+    }
+
+    stopVisualizerStream() {
+        if (this.audioStream) {
+            this.audioStream.getTracks().forEach(track => track.stop());
+            this.audioStream = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
+    }
+
     // --- Live Translation Module ---
 
     async translate(text, targetLang) {
@@ -85,7 +158,6 @@ class SpeechService {
             return text;
         }
 
-        // Public MyMemory Translation API pair: English to Target Language
         const langpair = `en|${targetLang}`;
         const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langpair}`;
 
@@ -99,52 +171,55 @@ class SpeechService {
             }
             return this.localTranslateFallback(text, targetLang);
         } catch (e) {
-            console.warn("MyMemory API translation offline/failed, falling back to local dictionary:", e);
+            console.warn("Translation API issue, falling back:", e);
             return this.localTranslateFallback(text, targetLang);
         }
     }
 
-    // Local offline translations for key vocabulary items
     localTranslateFallback(text, targetLang) {
         const dictionary = {
-            es: { // Spanish
+            es: {
                 "hello": "hola", "stop": "alto", "fist": "puño", "i love you": "te amo",
                 "peace": "paz", "l sign": "letra l", "pointing": "señalar", "ok": "correcto",
                 "thumbs up": "bien", "thumbs down": "mal", "rock on": "rockear", "call me": "llámame",
-                "yes": "sí", "no": "no", "good": "bueno", "bad": "malo", "water": "agua", "food": "comida"
+                "yes": "sí", "no": "no", "good": "bueno", "bad": "malo", "water": "agua", "food": "comida",
+                "need help": "necesito ayuda", "thank you": "gracias", "i need water": "necesito agua", "emergency": "emergencia"
             },
-            fr: { // French
+            fr: {
                 "hello": "bonjour", "stop": "arrêter", "fist": "poing", "i love you": "je t'aime",
                 "peace": "paix", "l sign": "signe l", "pointing": "pointer", "ok": "d'accord",
                 "thumbs up": "super", "thumbs down": "mauvais", "rock on": "en avant la musique", "call me": "appelle-moi",
-                "yes": "oui", "no": "non", "good": "bon", "bad": "mauvais", "water": "eau", "food": "nourriture"
+                "yes": "oui", "no": "non", "good": "bon", "bad": "mauvais", "water": "eau", "food": "nourriture",
+                "need help": "besoin d'aide", "thank you": "merci", "i need water": "j'ai besoin d'eau", "emergency": "urgence"
             },
-            de: { // German
+            de: {
                 "hello": "hallo", "stop": "halt", "fist": "faust", "i love you": "ich liebe dich",
                 "peace": "frieden", "l sign": "l-zeichen", "pointing": "zeigen", "ok": "in ordnung",
                 "thumbs up": "gut", "thumbs down": "schlecht", "rock on": "rocken", "call me": "ruf mich an",
-                "yes": "ja", "no": "nein", "good": "gut", "bad": "schlecht", "water": "wasser", "food": "essen"
+                "yes": "ja", "no": "nein", "good": "gut", "bad": "schlecht", "water": "wasser", "food": "essen",
+                "need help": "brauche hilfe", "thank you": "danke", "i need water": "ich brauche wasser", "emergency": "notfall"
             },
-            ja: { // Japanese
+            ja: {
                 "hello": "こんにちは", "stop": "止まれ", "fist": "拳", "i love you": "愛しています",
                 "peace": "ピース", "l sign": "lのサイン", "pointing": "指さし", "ok": "了解",
                 "thumbs up": "いいね", "thumbs down": "だめ", "rock on": "ロックオン", "call me": "電話して",
-                "yes": "はい", "no": "いいえ", "good": "良い", "bad": "悪い", "water": "水", "food": "食べ物"
+                "yes": "はい", "no": "いいえ", "good": "良い", "bad": "悪い", "water": "水", "food": "食べ物",
+                "need help": "助けが必要です", "thank you": "ありがとう", "i need water": "水が必要です", "emergency": "緊急事態"
             }
         };
 
         const words = text.toLowerCase().split(" ");
         const translatedWords = words.map(word => {
-            const baseWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,""); // Strip punctuation
+            const baseWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
             if (dictionary[targetLang] && dictionary[targetLang][baseWord]) {
                 return dictionary[targetLang][baseWord];
             }
-            return word; // Keep original if not matched
+            return word;
         });
         return translatedWords.join(" ");
     }
 
-    // --- Speech-to-Text (STT) & Voice Commands ---
+    // --- Speech-to-Text (STT) ---
 
     initRecognition() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -221,6 +296,7 @@ class SpeechService {
         if (this.recognition) {
             this.recognition.stop();
         }
+        this.stopVisualizerStream();
         if (onStateChange) onStateChange(false);
     }
 

@@ -1,9 +1,9 @@
 /**
  * SignWave - Main Application Controller
  * 
- * Orchestrates camera feed, MediaPipe hand tracking, custom landmark canvas,
- * custom gesture storage, interactive quiz loops with Web Audio synthesizers,
- * and live sentence translation.
+ * Orchestrates camera feed, MediaPipe hand tracking, customizable skeleton color themes,
+ * live audio visualizers, dynamic local system voice list loads, sign dictionary search filters,
+ * conversation chat log file exporters, and quick phrase tiles.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -37,6 +37,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnFontDec = document.getElementById("btn-font-dec");
     const btnFontInc = document.getElementById("btn-font-inc");
     const toggleAutoSpeak = document.getElementById("toggle-auto-speak");
+
+    // V3: Audio Waveform DOM
+    const voiceWaveCanvas = document.getElementById("voice-wave-canvas");
+    const waveCtx = voiceWaveCanvas.getContext("2d");
+
+    // V3: Custom Theme DOM
+    const themeSelect = document.getElementById("theme-select");
+
+    // V3: Custom System Voice DOM
+    const voiceProfileRow = document.getElementById("voice-profile-row");
+    const voiceProfileSelect = document.getElementById("voice-profile-select");
+
+    // V3: Dictionary Search DOM
+    const dictionarySearch = document.getElementById("dictionary-search");
+
+    // V3: Emergency Phrases DOM
+    const quickPhraseBtns = document.querySelectorAll(".btn-quick-phrase");
+
+    // V3: Chat Exporter DOM
+    const btnExportChat = document.getElementById("btn-export-chat");
 
     // Custom Gesture DOM Elements
     const customGestureName = document.getElementById("custom-gesture-name");
@@ -84,6 +104,14 @@ document.addEventListener("DOMContentLoaded", () => {
     let roundTimeLimit = 15; // 15 seconds per round
     let roundTimerInterval = null;
 
+    // --- V3: Skeleton Custom Theme Mapping ---
+    const THEMES = {
+        cyberpunk: { bones: "rgba(139, 92, 246, 0.8)", joints: "#d946ef", tips: "#10b981", glow: "rgba(139, 92, 246, 0.6)" },
+        gold: { bones: "rgba(245, 158, 11, 0.8)", joints: "#f97316", tips: "#fbbf24", glow: "rgba(245, 158, 11, 0.6)" },
+        emerald: { bones: "rgba(20, 184, 166, 0.8)", joints: "#10b981", tips: "#22d3ee", glow: "rgba(20, 184, 166, 0.6)" },
+        ice: { bones: "rgba(59, 130, 246, 0.8)", joints: "#6366f1", tips: "#38bdf8", glow: "rgba(59, 130, 246, 0.6)" }
+    };
+
     // --- Skeleton Connection Maps ---
     const HAND_CONNECTIONS = [
         [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
@@ -94,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
         [5, 9], [9, 13], [13, 17] // Knuckles
     ];
 
-    // --- Web Audio Synthesizer for Audio Feedback ---
+    // --- Web Audio Synthesizer for UI Tones ---
     function playBeep(frequency, duration, type = "sine") {
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -113,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + duration);
         } catch (e) {
-            console.log("Audio feedback blocked by browser policies.");
+            console.log("Audio context blocked by browser policy.");
         }
     }
 
@@ -131,6 +159,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function playFailBuzz() {
         playBeep(150, 0.35, "sawtooth");
+    }
+
+    // --- V3: Audio Visualizer Drawing Loop ---
+    function renderAudioWave(dataArray) {
+        waveCtx.clearRect(0, 0, voiceWaveCanvas.width, voiceWaveCanvas.height);
+        
+        const activeTheme = THEMES[themeSelect.value] || THEMES.cyberpunk;
+        const barWidth = (voiceWaveCanvas.width / dataArray.length) * 1.5;
+        let barHeight;
+        let x = 0;
+        
+        for (let i = 0; i < dataArray.length; i++) {
+            barHeight = (dataArray[i] / 255) * voiceWaveCanvas.height * 0.95;
+            
+            // Draw gradient reflecting the active accent theme
+            const grad = waveCtx.createLinearGradient(0, voiceWaveCanvas.height, 0, 0);
+            grad.addColorStop(0, activeTheme.bones);
+            grad.addColorStop(1, activeTheme.joints);
+            
+            waveCtx.fillStyle = grad;
+            waveCtx.shadowBlur = 5;
+            waveCtx.shadowColor = activeTheme.glow;
+            
+            // Center bars vertically
+            const y = (voiceWaveCanvas.height - barHeight) / 2;
+            waveCtx.fillRect(x, y, barWidth - 1.5, barHeight);
+            
+            x += barWidth;
+        }
+        waveCtx.shadowBlur = 0;
     }
 
     // --- Canvas Resize ---
@@ -218,18 +276,21 @@ document.addEventListener("DOMContentLoaded", () => {
         requestAnimationFrame(captureFrame);
     }
 
-    // --- MediaPipe Callback & Glowing Draw ---
+    // --- MediaPipe Callback & Theme-Driven Draw ---
     function onHandResults(results) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             const landmarks = results.multiHandLandmarks[0];
             
-            // Draw skeleton lines (glowing violet)
+            // V3: Get Active skeleton theme parameters
+            const activeTheme = THEMES[themeSelect.value] || THEMES.cyberpunk;
+
+            // Draw skeleton lines (Bones)
             ctx.shadowBlur = 6;
-            ctx.shadowColor = "rgba(139, 92, 246, 0.6)";
+            ctx.shadowColor = activeTheme.glow;
             ctx.lineWidth = 4;
-            ctx.strokeStyle = "rgba(139, 92, 246, 0.8)";
+            ctx.strokeStyle = activeTheme.bones;
             ctx.lineCap = "round";
 
             for (const connection of HAND_CONNECTIONS) {
@@ -241,7 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.stroke();
             }
 
-            // Draw joints (magenta joints, green tips)
+            // Draw joints (Knuckles vs Tips)
             ctx.shadowBlur = 10;
             for (let i = 0; i < landmarks.length; i++) {
                 const pt = landmarks[i];
@@ -249,18 +310,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 6, 0, 2 * Math.PI);
                 
                 if ([4, 8, 12, 16, 20].includes(i)) {
-                    ctx.fillStyle = "#10b981"; // Tip
-                    ctx.shadowColor = "#10b981";
+                    ctx.fillStyle = activeTheme.tips; // Tip
+                    ctx.shadowColor = activeTheme.tips;
                 } else {
-                    ctx.fillStyle = "#d946ef"; // Knuckle
-                    ctx.shadowColor = "#d946ef";
+                    ctx.fillStyle = activeTheme.joints; // Knuckle
+                    ctx.shadowColor = activeTheme.joints;
                 }
                 ctx.fill();
             }
 
             ctx.shadowBlur = 0;
 
-            // Run math predictions (passing custom gestures database)
+            // Run predictions
             const gesture = predictGesture(landmarks, customGestures);
             handleStableGesture(gesture);
         } else {
@@ -280,7 +341,6 @@ document.addEventListener("DOMContentLoaded", () => {
             currentGesture = gesture;
             updateGestureUI(currentGesture);
             
-            // Enable button if prediction is solid
             const isValidSign = !["Scanning...", "No Hand Detected", "Analyzing...", "Camera Off", "Scanning (0 fingers)", "Scanning (1 fingers)", "Scanning (2 fingers)", "Scanning (3 fingers)", "Scanning (4 fingers)", "Scanning (5 fingers)"].includes(gesture.name);
             btnAddWord.disabled = !isValidSign;
             
@@ -308,7 +368,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function highlightGuideItem(gestureName) {
-        // Highlight active guide
         const items = document.querySelectorAll(".guide-item, .custom-dict-item");
         items.forEach(item => {
             const nameEl = item.querySelector(".guide-name") || item.querySelector(".custom-dict-name");
@@ -361,14 +420,12 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Validate duplicates
         const exists = customGestures.some(cg => cg.name.toLowerCase() === name.toLowerCase());
         if (exists) {
             alert(`A gesture named "${name}" is already registered. Delete the existing one first.`);
             return;
         }
 
-        // Capture active finger structure
         const capturedStates = { ...currentGesture.states };
         
         customGestures.push({
@@ -381,7 +438,6 @@ document.addEventListener("DOMContentLoaded", () => {
         saveCustomGestures();
         customGestureName.value = "";
         
-        // Local synth confirmation
         playSuccessChime();
         appendChatMessage("System", `Successfully registered custom gesture: "${name}" ${emoji}`, "signer");
     }
@@ -432,14 +488,13 @@ document.addEventListener("DOMContentLoaded", () => {
             item.appendChild(info);
             item.appendChild(delBtn);
             
-            // Preview shape mapping upon clicking
             item.onclick = () => {
-                updateGestureUI({
+                currentGesture = {
                     name: cg.name,
                     emoji: cg.emoji,
-                    description: `Custom registered sign. Matching states: Thumb: ${cg.states.thumb ? 'UP' : 'DOWN'}, Index: ${cg.states.index ? 'UP' : 'DOWN'}.`,
-                    states: cg.states
-                });
+                    description: `Custom registered sign. Matching states: Thumb: ${cg.states.thumb ? 'UP' : 'DOWN'}, Index: ${cg.states.index ? 'UP' : 'DOWN'}.`
+                };
+                updateGestureUI(currentGesture);
                 btnAddWord.disabled = false;
             };
 
@@ -465,7 +520,6 @@ document.addEventListener("DOMContentLoaded", () => {
         appendChatMessage("SignWave Academy", "Starting practice session. Try to match the prompts on the left screen!", "signer");
         nextAcademyRound();
         
-        // Start checker intervals
         academyInterval = setInterval(checkAcademyProgress, 100);
     }
 
@@ -483,14 +537,12 @@ document.addEventListener("DOMContentLoaded", () => {
     function nextAcademyRound() {
         academyRound++;
         if (academyRound > 5) {
-            // Academy Quiz Completion
             playVictoryFanfare();
             appendChatMessage("SignWave Academy", `🎉 Congratulations! You completed the academy quiz. Final Score: ${academyScore}/5`, "signer");
             stopAcademy();
             return;
         }
 
-        // Compile list of potential target signs (standard + custom)
         const standardList = [
             { name: "Thumbs Up", emoji: "👍" },
             { name: "Peace / 'V'", emoji: "✌️" },
@@ -501,11 +553,9 @@ document.addEventListener("DOMContentLoaded", () => {
             { name: "Fist / 'A'", emoji: "✊" }
         ];
 
-        // Merge user custom items to keep training personalized
         const customList = customGestures.map(cg => ({ name: cg.name, emoji: cg.emoji }));
         const mergedList = [...standardList, ...customList];
 
-        // Select random target sign
         const randomIdx = Math.floor(Math.random() * mergedList.length);
         academyTargetSign = mergedList[randomIdx];
         
@@ -513,7 +563,6 @@ document.addEventListener("DOMContentLoaded", () => {
         academyPromptName.textContent = academyTargetSign.name;
         academyScoreText.textContent = `Round: ${academyRound}/5 | Score: ${academyScore}`;
         
-        // Reset timers
         academyHoldProgress = 0;
         academyProgressBar.style.width = "0%";
         
@@ -525,7 +574,6 @@ document.addEventListener("DOMContentLoaded", () => {
             roundTimeLimit--;
             academyTimerText.textContent = `${roundTimeLimit}s`;
             if (roundTimeLimit <= 0) {
-                // Out of time
                 playFailBuzz();
                 appendChatMessage("SignWave Academy", `Round ${academyRound} timed out! Target sign was: "${academyTargetSign.name}".`, "vocalist");
                 nextAcademyRound();
@@ -536,33 +584,27 @@ document.addEventListener("DOMContentLoaded", () => {
     function checkAcademyProgress() {
         if (!academyActive || !academyTargetSign) return;
 
-        // Verify if active hand prediction matches target
         const activeName = currentGesture ? currentGesture.name : "";
         const targetName = academyTargetSign.name;
 
-        // Check matching conditions (either exact matches or partial overlaps)
         const isMatch = activeName === targetName || 
                         activeName.includes(targetName) || 
                         targetName.includes(activeName);
 
         if (isMatch && cameraActive) {
-            // Increase progress
-            academyHoldProgress += 5; // Takes 20 steps (2 seconds)
+            academyHoldProgress += 5; // 2 seconds
             academyHoldProgress = Math.min(100, academyHoldProgress);
         } else {
-            // Drop progress if match breaks
             academyHoldProgress = Math.max(0, academyHoldProgress - 10);
         }
 
         academyProgressBar.style.width = `${academyHoldProgress}%`;
 
         if (academyHoldProgress >= 100) {
-            // Point scored!
             clearInterval(roundTimerInterval);
             academyScore++;
             playSuccessChime();
             
-            // HUD Flash Effect
             academyActiveState.classList.add("academy-success");
             setTimeout(() => {
                 academyActiveState.classList.remove("academy-success");
@@ -590,11 +632,137 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         translationPreview.textContent = "Translating...";
-        
-        // Invoke translation fetch
         const translated = await window.Speech.translate(sentenceText, targetLang);
         translationPreview.textContent = translated;
     }
+
+    // --- V3: System Voice Dropdown Populator ---
+    function populateVoicesDropdown() {
+        const targetLang = translationLangSelect.value;
+        const allVoices = window.Speech.getAllSystemVoices();
+        
+        voiceProfileSelect.innerHTML = "";
+
+        // Filter voices that match active language
+        let filtered = allVoices.filter(v => v.lang.toLowerCase().startsWith(targetLang.toLowerCase()));
+        
+        if (targetLang === "en") {
+            // Include all English voices
+            filtered = allVoices.filter(v => v.lang.toLowerCase().startsWith("en"));
+        }
+
+        if (filtered.length > 0) {
+            voiceProfileRow.style.display = "flex";
+            
+            filtered.forEach(voice => {
+                const opt = document.createElement("option");
+                opt.value = voice.name;
+                opt.textContent = `${voice.name} (${voice.lang})`;
+                voiceProfileSelect.appendChild(opt);
+            });
+
+            // Bind first voice by default
+            window.Speech.setCustomVoice(voiceProfileSelect.value);
+        } else {
+            voiceProfileRow.style.display = "none";
+            window.Speech.setCustomVoice(null); // Clear custom profile, fallback to default lang matching
+        }
+    }
+
+    // --- V3: Real-time Dictionary Search Filter ---
+    dictionarySearch.addEventListener("input", (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        
+        // Filter standard list items
+        document.querySelectorAll("#dictionary-guide .guide-item").forEach(item => {
+            const name = item.querySelector(".guide-name").textContent.toLowerCase();
+            const desc = item.querySelector(".guide-desc").textContent.toLowerCase();
+            
+            if (name.includes(query) || desc.includes(query)) {
+                item.style.display = "flex";
+            } else {
+                item.style.display = "none";
+            }
+        });
+
+        // Filter custom registered items
+        document.querySelectorAll("#custom-dictionary-list .custom-dict-item").forEach(item => {
+            const name = item.querySelector(".custom-dict-name").textContent.toLowerCase();
+            
+            if (name.includes(query)) {
+                item.style.display = "flex";
+            } else {
+                item.style.display = "none";
+            }
+        });
+    });
+
+    // --- V3: Emergency / Quick Phrase Handlers ---
+    quickPhraseBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const phrase = btn.getAttribute("data-phrase");
+            speakQuickPhrase(phrase);
+        });
+    });
+
+    async function speakQuickPhrase(phrase) {
+        const targetLang = translationLangSelect.value;
+        
+        if (targetLang === "en") {
+            appendChatMessage("Signer (Quick Phrase)", phrase, "signer");
+            window.Speech.speak(phrase, 'en-US');
+            
+            // Also append to textarea
+            const currentText = sentenceContainer.value.trim();
+            sentenceContainer.value = currentText ? `${currentText} ${phrase}` : phrase;
+            renderSentence();
+            updateTranslationDisplay();
+        } else {
+            const translated = await window.Speech.translate(phrase, targetLang);
+            appendChatMessage("Signer (Quick Phrase)", `${translated} ("${phrase}")`, "signer");
+            
+            const voiceAccents = { es: "es-ES", fr: "fr-FR", de: "de-DE", ja: "ja-JP" };
+            const accent = voiceAccents[targetLang] || targetLang;
+
+            window.Speech.speak(translated, accent);
+            
+            // Also append to textarea
+            const currentText = sentenceContainer.value.trim();
+            sentenceContainer.value = currentText ? `${currentText} ${phrase}` : phrase;
+            renderSentence();
+            updateTranslationDisplay();
+        }
+    }
+
+    // --- V3: Conversation Exporter ---
+    btnExportChat.addEventListener("click", () => {
+        const chatMessages = document.querySelectorAll(".chat-message");
+        if (chatMessages.length <= 1) {
+            alert("No logs to export yet. Build some sentences or speak to create logs.");
+            return;
+        }
+
+        let logText = `========================================\n`;
+        logText += `   SIGNWAVE AI ACCESS LOG\n`;
+        logText += `   Date: ${new Date().toLocaleString()}\n`;
+        logText += `========================================\n\n`;
+
+        chatMessages.forEach(msg => {
+            const sender = msg.querySelector(".chat-sender").textContent;
+            const content = msg.lastChild.textContent;
+            logText += `[${sender}]: ${content}\n`;
+        });
+
+        const blob = new Blob([logText], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `signwave_chat_log_${Date.now()}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    });
 
     // --- Sentence Builder Actions ---
     function addWordToSentence() {
@@ -644,17 +812,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 () => { btnSpeakSentence.innerHTML = "🔊 Speak Sentence"; }
             );
         } else {
-            // Translate first, then speak in native accent
             const translated = await window.Speech.translate(text, targetLang);
             appendChatMessage(`Signer (Translated)`, `${translated} ("${text}")`, "signer");
             
-            // Map simple lang codes to browser synth speech parameters
-            const voiceAccents = {
-                es: "es-ES",
-                fr: "fr-FR",
-                de: "de-DE",
-                ja: "ja-JP"
-            };
+            const voiceAccents = { es: "es-ES", fr: "fr-FR", de: "de-DE", ja: "ja-JP" };
             const accent = voiceAccents[targetLang] || targetLang;
 
             window.Speech.speak(
@@ -685,7 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    // --- Speech Recognition ---
+    // --- Speech Recognition & Visualizer ---
     let isListening = false;
     
     function toggleSpeechListening() {
@@ -697,8 +858,11 @@ document.addEventListener("DOMContentLoaded", () => {
             window.Speech.stopListening((listening) => {
                 isListening = listening;
                 updateMicUI();
+                voiceWaveCanvas.style.display = "none";
             });
         } else {
+            voiceWaveCanvas.style.display = "block";
+            
             window.Speech.startListening(
                 (transcript) => {
                     micStatus.textContent = `"${transcript.interim || transcript.final}"`;
@@ -715,6 +879,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     updateMicUI();
                 }
             );
+
+            // V3: Pipeline mic levels to audio waveform drawing loop
+            window.Speech.startVisualizerStream((dataArray) => {
+                renderAudioWave(dataArray);
+            });
         }
     }
 
@@ -765,7 +934,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function adjustFontSize(delta) {
         fontMultiplier = Math.max(0.8, Math.min(1.8, fontMultiplier + delta));
         document.documentElement.style.setProperty("--font-multiplier", fontMultiplier);
-        document.querySelector(".sentence-display-area").style.fontSize = `calc(1.2rem * ${fontMultiplier})`;
+        document.querySelector(".sentence-display-area").style.fontSize = `calc(1.15rem * ${fontMultiplier})`;
     }
 
     // --- Event Bindings ---
@@ -789,13 +958,14 @@ document.addEventListener("DOMContentLoaded", () => {
     btnStartAcademy.addEventListener("click", startAcademy);
     btnStopAcademy.addEventListener("click", stopAcademy);
 
-    // Translation Selector
-    translationLangSelect.addEventListener("change", updateTranslationDisplay);
-
-    // Typing and Input Listener for Textarea
-    sentenceContainer.addEventListener("input", () => {
-        renderSentence();
+    // Translation Selector & Voice loader integrations
+    translationLangSelect.addEventListener("change", () => {
         updateTranslationDisplay();
+        populateVoicesDropdown();
+    });
+
+    voiceProfileSelect.addEventListener("change", (e) => {
+        window.Speech.setCustomVoice(e.target.value);
     });
 
     // Accessibility binds
@@ -814,7 +984,7 @@ document.addEventListener("DOMContentLoaded", () => {
         autoSpeakEnabled = e.target.checked;
     });
 
-    // Reference guides
+    // Reference guides click simulation
     guideItems.forEach(item => {
         item.addEventListener("click", () => {
             const name = item.querySelector(".guide-name").textContent;
@@ -831,6 +1001,14 @@ document.addEventListener("DOMContentLoaded", () => {
             btnAddWord.disabled = false;
         });
     });
+
+    // V3: Load custom voices on startup or system changes
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = () => {
+            populateVoicesDropdown();
+        };
+    }
+    setTimeout(populateVoicesDropdown, 500); // Fail-safe loader
 
     // --- Init App ---
     initMediaPipe();

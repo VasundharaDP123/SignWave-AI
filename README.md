@@ -1,25 +1,33 @@
 # SignWave - AI Sign Language Suite & Practice Hub
 
-SignWave is a premium, fully client-side accessibility web application. It uses real-time computer vision (MediaPipe Hands) to translate hand gestures into speech, record custom hand shapes, practice sign accuracy through a real-time gamified HUD, and translate constructed sentences into multiple languages.
+SignWave is a premium, client-side accessibility web suite. Using real-time computer vision (MediaPipe Hands), standard Speech Synthesis/Recognition APIs, and the Web Audio API, the application functions fully offline or online directly inside the browser.
 
 ---
 
 ## 🌟 Key Features
 
-1. **Real-time Sign Recognition**: Maps 21 hand joints (X, Y, Z) at 30+ FPS and predicts gesture shapes directly in your browser.
-2. **Neon Skeleton Render**: Transparent overlay rendering hand skeletons with glowing violet bones and green/magenta tracking joints.
-3. **Dynamic Custom Gesture Studio**: Capture any hand shape in real-time, name it (e.g. *Water*, *Help*), select an emoji, and save it in the browser's `localStorage`. Saved gestures override default vocabulary.
-4. **SignWave Academy (Practice Game)**: A gamified HUD that challenges you to show random signs. Verify holding accuracy over a 2-second interval, complete with built-in native synthesizer feedback (success beeps, victory fanfare, and error buzzes).
-5. **Multi-Language Translator**: Select from Spanish, French, German, or Japanese, and dynamically translate sign sentences via the free, client-side MyMemory API.
-6. **Localized Speech Accents**: Text-to-Speech synthesis automatically matches your browser's local regional voices (e.g., reads Spanish translations with a Spanish accent, Japanese with a Japanese accent).
-7. **Accessibility Suite**: Features High Contrast Display mode, adjustable font zoom levels (+/-), and toggles for Auto-Speak.
-8. **Speech-to-Text & Voice Command Navigation**: Transcribes hearing speakers' voices and supports hands-free controls (*"clear sentence"*, *"delete word"*, *"speak sentence"*).
+1. **Real-time Sign Recognition**: Tracks 21 hand joints (X, Y, Z) at 30+ FPS and predicts gesture shapes directly in your browser.
+2. **Neon Skeleton Render**: Overlays a glowing skeleton with joints and tip markers onto the camera feed.
+3. **Animated Gradient Mesh Background**: Translucent glassmorphism panels flow on top of organic, floating gradient background orbs (violet, magenta, emerald) for a premium dashboard design.
+4. **Dynamic Custom Gesture Studio**: Capture unique hand shapes in real-time, label them (e.g. *Water*, *Help*), associate an emoji, and store them locally inside the browser's `localStorage` to override default signs.
+5. **Live Audio Waveform Visualizer**: Activating the voice assist microphone connects to the Web Audio API and renders a responsive, glowing amplitude frequency wave next to the microphone icon.
+6. **Custom OS Voice Profiles**: Automatically loads and filters all native, premium voices installed on your operating system (Male, Female, Natural, and regional voices) so that speech translations sound native.
+7. **Trace Color Themes**: Customize your hand skeleton tracing styles dynamically using the settings selector:
+   * **Cyberpunk (Neon)**: Violet bones, magenta joints, green tips (Default).
+   * **Volt Gold**: Bronze bones, orange joints, gold tips.
+   * **Emerald Sea**: Teal bones, emerald joints, cyan tips.
+   * **Ice Indigo**: Cobalt bones, indigo joints, light blue tips.
+8. **Real-time Search Filter**: A search bar inside the Reference Dictionary sidebar so users can filter signs instantly by name or description.
+9. **Emergency Quick Phrases**: One-click speech cards for vital phrases (*Need Help*, *Thank You*, *Water*, *Emergency*) to speed up critical communication.
+10. **Conversation Exporter**: Download your full interactive session logs as a clean text file (`signwave_chat_log.txt`) by clicking **"Export Log"**.
+11. **Text-to-Speech & Speech-to-Text**: Converts timelines into spoken sentences, and transcribes spoken voice answers into visual text logs.
+12. **Hands-free Voice Commands**: Supports navigational keywords (*"clear sentence"*, *"delete word"*, *"speak sentence"*, *"add word"*, *"zoom in"*, *"zoom out"*).
 
 ---
 
 ## 🚀 How to Launch SignWave
 
-The application is completely self-contained (no Python environments, node dependencies, or cloud servers are required to compile or run).
+The application is fully client-side and requires **no complex installation steps**.
 
 ### Option 1: Direct File Open (Easiest)
 Simply double-click the [index.html](file:///c:/Users/dpvas/OneDrive/Documents/Desktop/sign_lang/index.html) file to open it in Google Chrome or Microsoft Edge.
@@ -47,8 +55,8 @@ Open your terminal in this directory and start a local host:
 ## 🎒 SignWave Academy: Practice Game HUD
 When you start Practice Mode:
 1. The AI prompts you with a target gesture (e.g., Peace / 'V' ✌️).
-2. You must form the shape in front of your camera.
-3. When the AI detects a match, a progress bar fills up. You must hold the shape stable for 2 seconds.
+2. Form the shape in front of your camera.
+3. When the AI detects a match, a progress bar fills up. Hold the shape stable for 2 seconds.
 4. Completing a sign plays a success chime (synthesized using the Web Audio API) and selects a new target.
 5. Score as many as you can before the 15-second round timer runs out! Complete all 5 rounds to hear the victory fanfare.
 
