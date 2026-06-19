@@ -1,6 +1,5 @@
 # 🌊 SignWave AI - Real-Time Sign Language Suite & Practice Hub
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](https://opensource.org/licenses/MIT)
 [![Technology: Vanilla JS](https://img.shields.io/badge/Technology-Vanilla%20JS-06b6d4.svg)](#)
 [![Library: MediaPipe](https://img.shields.io/badge/Library-MediaPipe--Hands-0f766e.svg)](#)
 [![Auditory: Web Audio API](https://img.shields.io/badge/Auditory-Web%20Audio--API-10b981.svg)](#)
@@ -137,8 +136,3 @@ Navigate to the project root directory and start a web server:
     npx live-server
     ```
 
----
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
