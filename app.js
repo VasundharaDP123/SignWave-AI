@@ -427,8 +427,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        // 1. Waving horizontal movement check for "Hello"
-        if (directionChangesX >= 2 && xSpan > ySpan * 1.2 && xSpan > 0.07) {
+        // 1. Waving horizontal movement check for "Hello" (requires clear, intentional back-and-forth movement)
+        if (directionChangesX >= 3 && xSpan > ySpan * 1.3 && xSpan > 0.12) {
             return {
                 name: "Hello",
                 emoji: "👋",
@@ -451,7 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        if (directionChangesY >= 2 && ySpan > xSpan * 1.2 && ySpan > 0.07) {
+        if (directionChangesY >= 3 && ySpan > xSpan * 1.3 && ySpan > 0.12) {
             return {
                 name: "Yes",
                 emoji: "✊",
@@ -462,7 +462,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // 3. Circular rubbing movement check for "Please"
         if (motionHistory.length >= 15) {
             const ratio = xSpan / (ySpan || 1);
-            if (xSpan > 0.05 && ySpan > 0.05 && ratio > 0.6 && ratio < 1.7 && directionChangesX >= 1 && directionChangesY >= 1) {
+            if (xSpan > 0.08 && ySpan > 0.08 && ratio > 0.6 && ratio < 1.7 && directionChangesX >= 1 && directionChangesY >= 1) {
                 return {
                     name: "Please",
                     emoji: "🙏",
@@ -488,7 +488,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const xSpan = maxX - minX;
         const ySpan = maxY - minY;
-        return xSpan > 0.025 || ySpan > 0.025;
+        return xSpan > 0.05 || ySpan > 0.05;
     }
 
     // --- MediaPipe Callback & Theme-Driven Draw ---
@@ -569,9 +569,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handleStableGesture(gesture) {
-        // V5: Bypass debounce or use low threshold for dynamic motion/two-hand gestures to ensure responsive detection
+        // V5: Balanced confirmation thresholds (4 frames for dynamic, 6 frames for static) to ensure quick, stable locks without starvation
         const isDynamicOrTwoHand = ["Hello", "Yes", "Please", "House / Roof", "Book / Read", "Friend"].includes(gesture.name);
-        const targetThreshold = isDynamicOrTwoHand ? 2 : 12; // 12 frames (~400ms) for static, 2 frames for dynamic
+        const targetThreshold = isDynamicOrTwoHand ? 4 : 6; // 6 frames (~200ms) for static, 4 frames (~130ms) for dynamic
 
         if (gesture.name === lastPredictionName) {
             predictionMatchCount++;
