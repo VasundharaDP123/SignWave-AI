@@ -703,6 +703,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let isListening = false;
     
     function toggleSpeechListening() {
+        if (!window.Speech.recognition) {
+            alert("Voice Recognition is not supported in this browser version or context. Please use Google Chrome or Microsoft Edge, and ensure you have granted microphone permissions in your site settings.");
+            return;
+        }
         if (isListening) {
             window.Speech.stopListening((listening) => {
                 isListening = listening;
@@ -823,11 +827,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const emoji = item.querySelector(".guide-emoji").textContent;
             const desc = item.querySelector(".guide-desc").textContent;
             
-            updateGestureUI({
+            currentGesture = {
                 name: name,
                 emoji: emoji,
-                description: desc + " (Turn camera on to demonstrate this.)"
-            });
+                description: desc
+            };
+            
+            updateGestureUI(currentGesture);
             btnAddWord.disabled = false;
         });
     });
