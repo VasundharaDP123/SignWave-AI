@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- V3: Skeleton Custom Theme Mapping ---
     const THEMES = {
-        cyberpunk: { bones: "rgba(139, 92, 246, 0.8)", joints: "#d946ef", tips: "#10b981", glow: "rgba(139, 92, 246, 0.6)" },
+        cyberpunk: { bones: "rgba(6, 182, 212, 0.8)", joints: "#10b981", tips: "#22d3ee", glow: "rgba(6, 182, 212, 0.6)" },
         gold: { bones: "rgba(245, 158, 11, 0.8)", joints: "#f97316", tips: "#fbbf24", glow: "rgba(245, 158, 11, 0.6)" },
         emerald: { bones: "rgba(20, 184, 166, 0.8)", joints: "#10b981", tips: "#22d3ee", glow: "rgba(20, 184, 166, 0.6)" },
         ice: { bones: "rgba(59, 130, 246, 0.8)", joints: "#6366f1", tips: "#38bdf8", glow: "rgba(59, 130, 246, 0.6)" }
