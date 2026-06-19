@@ -1,82 +1,144 @@
-# SignWave - AI Sign Language Suite & Practice Hub
+# 🌊 SignWave AI - Real-Time Sign Language Suite & Practice Hub
 
-SignWave is a premium, client-side accessibility web suite. Using real-time computer vision (MediaPipe Hands), standard Speech Synthesis/Recognition APIs, and the Web Audio API, the application functions fully offline or online directly inside the browser.
+[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](https://opensource.org/licenses/MIT)
+[![Technology: Vanilla JS](https://img.shields.io/badge/Technology-Vanilla%20JS-06b6d4.svg)](#)
+[![Library: MediaPipe](https://img.shields.io/badge/Library-MediaPipe--Hands-0f766e.svg)](#)
+[![Auditory: Web Audio API](https://img.shields.io/badge/Auditory-Web%20Audio--API-10b981.svg)](#)
+[![Access: Offline Ready](https://img.shields.io/badge/Access-Offline%20Ready-success.svg)](#)
+
+SignWave AI is a premium, client-side sign language translation and practice suite designed to bridge communication gaps for the Deaf and Hard of Hearing community. Powered by real-time computer vision, standard Web Speech Synthesis/Recognition APIs, and the Web Audio API, the application runs entirely client-side, ensuring complete privacy, zero server lag, and full offline accessibility.
+
+Featuring a sleek, modern **Oceanic Wave branding design** with glowing cyan/teal elements and glassmorphic layouts, SignWave provides an immersive visual and auditory feedback loop for learning, translating, and customized communication.
+
+---
+
+## 🗺️ System Interface & Architecture
+
+```
+                                  +----------------------+
+                                  |     User Webcam      |
+                                  +----------+-----------+
+                                             |
+                                             v
+                                  +----------+-----------+
+                                  |   MediaPipe Hands    |
+                                  | (Landmark Detection) |
+                                  +----------+-----------+
+                                             |
+                                             v
+                    +------------------------+------------------------+
+                    |                                                 |
+                    v                                                 v
+        +-----------+-----------+                         +-----------+-----------+
+        |   Gesture Classifier  |                         |  Synthesized Audio /  |
+        |  (Default vs Custom)  |                         |  Speech Transcription |
+        +-----------+-----------+                         +-----------+-----------+
+                    |                                                 |
+                    v                                                 v
+        +-----------+-----------+                         +-----------+-----------+
+        |  Sentence Timeline    +<------------------------+  Voice Command Engine |
+        |  & Chat Log Builder   |                         |  (Navigation & Ops)  |
+        +-----------+-----------+                         +-----------------------+
+                    |
+                    v
+        +-----------+-----------+
+        |   Log / Data Exporter |
+        +-----------------------+
+```
 
 ---
 
 ## 🌟 Key Features
 
-1. **Real-time Sign Recognition**: Tracks 21 hand joints (X, Y, Z) at 30+ FPS and predicts gesture shapes directly in your browser.
-2. **Neon Skeleton Render**: Overlays a glowing skeleton with joints and tip markers onto the camera feed.
-3. **Animated Gradient Mesh Background**: Translucent glassmorphism panels flow on top of organic, floating gradient background orbs (violet, magenta, emerald) for a premium dashboard design.
-4. **Dynamic Custom Gesture Studio**: Capture unique hand shapes in real-time, label them (e.g. *Water*, *Help*), associate an emoji, and store them locally inside the browser's `localStorage` to override default signs.
-5. **Live Audio Waveform Visualizer**: Activating the voice assist microphone connects to the Web Audio API and renders a responsive, glowing amplitude frequency wave next to the microphone icon.
-6. **Custom OS Voice Profiles**: Automatically loads and filters all native, premium voices installed on your operating system (Male, Female, Natural, and regional voices) so that speech translations sound native.
-7. **Trace Color Themes**: Customize your hand skeleton tracing styles dynamically using the settings selector:
-   * **Cyberpunk (Neon)**: Violet bones, magenta joints, green tips (Default).
-   * **Volt Gold**: Bronze bones, orange joints, gold tips.
-   * **Emerald Sea**: Teal bones, emerald joints, cyan tips.
-   * **Ice Indigo**: Cobalt bones, indigo joints, light blue tips.
-8. **Real-time Search Filter**: A search bar inside the Reference Dictionary sidebar so users can filter signs instantly by name or description.
-9. **Emergency Quick Phrases**: One-click speech cards for vital phrases (*Need Help*, *Thank You*, *Water*, *Emergency*) to speed up critical communication.
-10. **Conversation Exporter**: Download your full interactive session logs as a clean text file (`signwave_chat_log.txt`) by clicking **"Export Log"**.
-11. **Text-to-Speech & Speech-to-Text**: Converts timelines into spoken sentences, and transcribes spoken voice answers into visual text logs.
-12. **Hands-free Voice Commands**: Supports navigational keywords (*"clear sentence"*, *"delete word"*, *"speak sentence"*, *"add word"*, *"zoom in"*, *"zoom out"*).
+*   **Real-Time Sign Recognition**: Employs MediaPipe's high-fidelity hand-tracking model to analyze 21 individual joint landmarks (X, Y, Z coordinates) at 30+ FPS directly in the browser.
+*   **Oceanic Wave Branding**: Fluid mesh gradient backgrounds with floating teal (`#0f766e`) and sky blue (`#0ea5e9`) orbs, modern typography, and glassmorphic panels that adapt seamlessly to different viewport sizes.
+*   **Custom Gesture Studio**: Capture unique hand shapes in real-time, label them, assign emojis, and save them directly to `localStorage` to override default signs.
+*   **SignWave Practice Academy**: An interactive training game to learn and refine gestures. Users match target signs, hold them for 2 seconds to earn points, and play against a 15-second round timer with Web Audio sound chimes.
+*   **Dynamic Trace Color Themes**: Choose from premium trace overlays to highlight hand landmarks:
+    *   🌊 **Oceanic Wave (Neon)**: Cyan bones, emerald joints, light blue tips (Default).
+    *   ⚡ **Volt Gold**: Bronze bones, orange joints, gold tips.
+    *   🌿 **Emerald Sea**: Teal bones, emerald joints, cyan tips.
+    *   ❄️ **Ice Indigo**: Cobalt bones, indigo joints, light blue tips.
+*   **Hands-Free Voice Navigation**: Execute system commands through voice recognition to modify sentences, zoom text, or request speech playback.
+*   **Flexible Layout**: Responsive dashboard container that fits standard laptop resolutions without clipping components, maintaining high visual hierarchy and scrollable panels.
+*   **Local Session Exporter**: Download interactive translations and chat histories as a clean text file (`signwave_chat_log.txt`) instantly.
 
 ---
 
-## 🚀 How to Launch SignWave
+## 📖 Reference Sign Dictionary
 
-The application is fully client-side and requires **no complex installation steps**.
+SignWave includes a set of standard gestures built on finger joint angle analyses. Custom signs added via the Gesture Studio will dynamically override these defaults:
 
-### Option 1: Direct File Open (Easiest)
-Simply double-click the [index.html](file:///c:/Users/dpvas/OneDrive/Documents/Desktop/sign_lang/index.html) file to open it in Google Chrome or Microsoft Edge.
-
-*Note: Some browser security sandboxes block camera activation when loading files via the raw `file://` protocol. If the camera doesn't start, use Option 2.*
-
-### Option 2: Run a Simple Local Web Server (Recommended)
-Open your terminal in this directory and start a local host:
-
-* **Python 3**:
-  ```bash
-  python -m http.server 8000
-  ```
-  Then visit: **http://localhost:8000**
-
-* **Node.js / npm**:
-  ```bash
-  npx live-server
-  # OR
-  npx serve .
-  ```
+| Gesture | Label | Description / Finger Configuration |
+| :---: | :--- | :--- |
+| 👋 | **Hello** | Open palm, all fingers extended vertically. |
+| ✊ | **Yes** | Fully closed fist, all fingers folded. |
+| ✋ | **Stop** | Open flat hand facing forward. |
+| ✌️ | **Peace / 'V'** | Index and middle fingers extended, others folded. |
+| ☝️ | **Pointing / '1'**| Only the index finger extended vertically. |
+| 👌 | **OK** | Thumb and index finger tips touching in a loop. |
+| 👍 | **Thumbs Up** | Thumb extended vertically upward, others folded. |
+| 👎 | **Thumbs Down**| Thumb extended vertically downward, others folded. |
+| 🤘 | **Rock On** | Index and pinky extended, middle and ring folded. |
+| 🤙 | **Call Me** | Thumb and pinky extended, other fingers folded. |
 
 ---
 
-## 🎒 SignWave Academy: Practice Game HUD
-When you start Practice Mode:
-1. The AI prompts you with a target gesture (e.g., Peace / 'V' ✌️).
-2. Form the shape in front of your camera.
-3. When the AI detects a match, a progress bar fills up. Hold the shape stable for 2 seconds.
-4. Completing a sign plays a success chime (synthesized using the Web Audio API) and selects a new target.
-5. Score as many as you can before the 15-second round timer runs out! Complete all 5 rounds to hear the victory fanfare.
+## 🗣️ Voice Command Reference
+
+When the microphone is active (visualized by the glowing audio amplitude waveform), speak any of the following phrases to control the application hands-free:
+
+| Spoken Phrase | Action Triggered |
+| :--- | :--- |
+| `"add word"` / `"add sign"` | Appends the current hand prediction bubble to the sentence timeline. |
+| `"backspace"` / `"delete last word"` | Deletes the last word bubble added to the timeline. |
+| `"clear sentence"` / `"reset sentence"` | Empties the sentence text area completely. |
+| `"speak sentence"` / `"read aloud"` | Translates the timeline text and speaks it using the active OS voice profile. |
+| `"increase font"` / `"zoom in"` | Scales up dashboard text size. |
+| `"decrease font"` / `"zoom out"` | Scales down dashboard text size. |
 
 ---
 
-## 🏷️ Custom Gesture Studio: How to Train Signs
-1. Select **"Start Camera"**.
-2. Type the label name of your custom gesture in the input box (e.g. `Water`).
-3. Select an emoji representing your custom sign.
-4. Form your custom hand shape in front of the lens (ensure the neon joint tracker is active).
-5. Click **"Save Current Shape"**.
-6. The gesture registers immediately, pops into the Dictionary list, and overrides any default sign using that same finger configuration.
+## 🛠️ Technology Stack & Libraries
+
+*   **HTML5 & Vanilla CSS3**: Structured layouts using flexbox, grids, variables, and GPU-accelerated keyframe animation.
+*   **MediaPipe Hands API**: Google's machine learning pipeline for sub-millisecond hand landmark tracking.
+*   **Web Audio API**: Dynamically synthesizes real-time sound effects (practice chimes, success fanfares, and visualizer streams) without external audio files.
+*   **Web Speech API**:
+    *   *SpeechRecognition*: Transcribes voice commands and conversational inputs locally.
+    *   *SpeechSynthesis*: Translates sign sentences into audible spoken words using premium OS voice profiles.
+*   **Web Storage API (`localStorage`)**: Saves custom-built sign templates persistently across browser reloads.
 
 ---
 
-## 🗣️ Voice Activated Dashboard Commands
-While the microphone icon is pulsing red, speak the following phrases to navigate:
-* **"clear sentence"** or **"reset sentence"**: Clears all word bubbles from your sentence builder.
-* **"speak sentence"** or **"read aloud"**: Translates and speaks your timeline out loud.
-* **"backspace"** or **"delete last word"**: Removes the most recently added sign bubble.
-* **"add word"** or **"add sign"**: Appends the active prediction to your sentence builder.
-* **"increase font"** or **"zoom in"**: Enlarges text display size.
-* **"decrease font"** or **"zoom out"**: Shrinks text display size.
+## 🚀 Getting Started & Local Setup
+
+SignWave AI is structured as a client-side web application. It runs directly in the browser and does not require complex build steps or compiler setups.
+
+### Option 1: Direct File Open (Standard Sandbox)
+Double-click [index.html](file:///c:/Users/dpvas/OneDrive/Documents/Desktop/sign_lang/index.html) to open the application in a modern browser (Google Chrome or Microsoft Edge recommended). 
+
+> [!NOTE]
+> Some browser security models block camera permissions when opening files using the `file://` protocol. If the webcam fails to load, use the local server option below.
+
+### Option 2: Run a Local Web Server (Recommended)
+Navigate to the project root directory and start a web server:
+
+*   **Using Python 3**:
+    ```bash
+    python -m http.server 8000
+    ```
+    Then open: **[http://localhost:8000](http://localhost:8000)**
+
+*   **Using Node.js (`npx`)**:
+    ```bash
+    npx serve .
+    # OR
+    npx live-server
+    ```
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
