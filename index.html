@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignWave - Real-time AI Sign Language Communication & Practice Assistant</title>
+    <meta name="description" content="SignWave is a client-side AI accessibility suite utilizing MediaPipe computer vision to translate gestures, record custom hand vocabulary, practice sign accuracy, and perform live translation.">
+    
+    <!-- Premium Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- MediaPipe Hands CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Header Section -->
+        <header>
+            <div class="logo-section">
+                <div class="logo-icon">🌊</div>
+                <div class="app-title-wrapper">
+                    <h1>SignWave AI</h1>
+                    <div class="app-subtitle">Advanced Accessibility Suite</div>
+                </div>
+            </div>
+            
+            <div id="camera-badge" class="badge badge-offline">
+                <span id="system-status">Initializing AI System...</span>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="dashboard-grid">
+            
+            <!-- Left Panel: Sign Dictionary & SignWave Academy (Practice) -->
+            <section class="glass-panel" style="gap: 24px;" aria-label="Learning and Reference">
+                
+                <!-- Tab 1: SignWave Academy (Practice Center) -->
+                <div>
+                    <div class="panel-header">
+                        <h2>🎓 SignWave Academy</h2>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; margin-bottom: 12px;">
+                        Interactive training game. Verify your hand signs against the AI in real-time.
+                    </p>
+                    
+                    <div id="academy-idle-state" class="mic-control-card" style="padding: 12px; background: rgba(139, 92, 246, 0.05); border-color: var(--accent-glow);">
+                        <span style="font-size: 1.8rem;">🎯</span>
+                        <h3 style="font-size: 0.95rem; margin-top: 4px;">Practice Gestures</h3>
+                        <button id="btn-start-academy" class="primary" style="padding: 6px 16px; font-size: 0.8rem; margin-top: 8px;">Start Practice Mode</button>
+                    </div>
+
+                    <!-- Quiz Active HUD (hidden by default) -->
+                    <div id="academy-active-state" class="mic-control-card" style="display: none; padding: 16px; background: rgba(0, 0, 0, 0.25); text-align: left; align-items: stretch;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px;">
+                            <span>ACADEMY QUIZ</span>
+                            <span id="academy-score" style="font-weight: bold; color: var(--accent);">Score: 0/5</span>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 12px 0;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">SHOW THIS GESTURE:</div>
+                            <div id="academy-prompt-emoji" style="font-size: 2.8rem; margin: 4px 0; animation: float 2.5s ease-in-out infinite;">👍</div>
+                            <div id="academy-prompt-name" style="font-weight: 700; font-size: 1.2rem; color: var(--text-primary);">Thumbs Up</div>
+                        </div>
+
+                        <!-- Progress indicator -->
+                        <div style="margin-top: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px;">
+                                <span>Hold Position...</span>
+                                <span id="academy-timer">10s</span>
+                            </div>
+                            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);">
+                                <div id="academy-progress-bar" style="width: 0%; height: 100%; background: var(--accent-gradient); transition: width 0.1s linear;"></div>
+                            </div>
+                        </div>
+
+                        <button id="btn-stop-academy" class="danger" style="padding: 6px 12px; font-size: 0.75rem; margin-top: 14px; width: 100%; justify-content: center;">Quit Practice</button>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Dictionary Guide -->
+                <div>
+                    <div class="panel-header">
+                        <h2>📚 Reference Dictionary</h2>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; margin-bottom: 12px;">
+                        Supported signs catalog. Click to preview target finger shapes.
+                    </p>
+                    <div class="guide-list" id="dictionary-guide">
+                        <!-- Custom gestures list injected at runtime above system dictionary -->
+                        <div id="custom-dictionary-header" style="display:none; font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-top: 8px; text-transform: uppercase;">Custom Registered Vocabulary</div>
+                        <div id="custom-dictionary-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
+                        
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-top: 8px; text-transform: uppercase;">Standard Vocabulary</div>
+                        <div class="guide-item"><div class="guide-emoji">👋</div><div class="guide-info"><span class="guide-name">Hello / Stop</span><span class="guide-desc">All fingers extended straight</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">✊</div><div class="guide-info"><span class="guide-name">Fist / 'A'</span><span class="guide-desc">All fingers folded in a fist</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">🤟</div><div class="guide-info"><span class="guide-name">I Love You</span><span class="guide-desc">Thumb, Index, Pinky extended</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">✌️</div><div class="guide-info"><span class="guide-name">Peace / 'V'</span><span class="guide-desc">Index & Middle extended</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">👉</div><div class="guide-info"><span class="guide-name">L Sign</span><span class="guide-desc">Thumb and Index form an L</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">☝️</div><div class="guide-info"><span class="guide-name">Pointing / '1'</span><span class="guide-desc">Only Index finger extended</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">👌</div><div class="guide-info"><span class="guide-name">OK</span><span class="guide-desc">Thumb & Index tips touching</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">👍</div><div class="guide-info"><span class="guide-name">Thumbs Up</span><span class="guide-desc">Thumb up, others folded</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">👎</div><div class="guide-info"><span class="guide-name">Thumbs Down</span><span class="guide-desc">Thumb down, others folded</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">🤘</div><div class="guide-info"><span class="guide-name">Rock On</span><span class="guide-desc">Index & Pinky extended</span></div></div>
+                        <div class="guide-item"><div class="guide-emoji">🤙</div><div class="guide-info"><span class="guide-name">Call Me</span><span class="guide-desc">Thumb & Pinky extended</span></div></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Middle Panel: Webcam Workspace, Custom Studio, and Dashboard Builder -->
+            <section class="workspace-column">
+                
+                <!-- Video Camera Panel -->
+                <div class="glass-panel video-panel">
+                    <video id="webcam" autoplay playsinline muted></video>
+                    <canvas id="output-canvas"></canvas>
+                    
+                    <div class="camera-overlay-ui">
+                        <div class="badge" style="background: rgba(139, 92, 246, 0.2); border-color: var(--accent);">
+                            <span>SignWave tracking engine</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Gesture Prediction Display -->
+                <div class="glass-panel">
+                    <div class="detection-card">
+                        <div id="detected-emoji" class="detected-emoji-large">📷</div>
+                        <div class="detected-details">
+                            <div class="detected-label">Current Prediction</div>
+                            <div id="detected-name" class="detected-name">Camera Offline</div>
+                            <div id="detected-desc" class="detected-desc">Select 'Start Camera' below to initialize recognition.</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <button id="btn-toggle-camera" class="primary">📷 Start Camera</button>
+                        <div id="detected-states" style="display: flex; gap: 6px;">
+                            <!-- Finger status dots injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Custom Gesture Studio (NEW) -->
+                <div class="glass-panel" style="padding: 16px;">
+                    <div class="panel-header" style="padding-bottom: 8px;">
+                        <h3 style="font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">🏷️ Custom Gesture Studio</h3>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 10px;">
+                        Map a unique hand shape to a personalized word (saved in your browser).
+                    </p>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="custom-gesture-name" placeholder="Enter meaning (e.g. Water)" style="flex: 1; min-width: 160px; padding: 8px 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-family: inherit; font-size: 0.85rem;">
+                        
+                        <select id="custom-gesture-emoji" style="padding: 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.85rem; font-family: inherit;">
+                            <option value="🏷️">🏷️ Tag</option>
+                            <option value="💧">💧 Water</option>
+                            <option value="🍎">🍎 Food</option>
+                            <option value="☕">☕ Drink</option>
+                            <option value="🏠">🏠 House</option>
+                            <option value="❤️">❤️ Love</option>
+                            <option value="🤝">🤝 Help</option>
+                            <option value="✏️">✏️ Custom</option>
+                        </select>
+                        
+                        <button id="btn-record-gesture" style="padding: 8px 14px; font-size: 0.8rem; background: rgba(16, 185, 129, 0.15); border-color: rgba(16,185,129,0.3); color: #a7f3d0;">
+                            💾 Save Current Shape
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sentence Assembling Dashboard -->
+                <div class="glass-panel sentence-builder-panel">
+                    <div class="panel-header">
+                        <h2>✍️ Sentence Timeline</h2>
+                    </div>
+                    
+                    <!-- Assembled words -->
+                    <div class="sentence-display-area" id="sentence-container" aria-live="polite">
+                        <span class="sentence-display-placeholder">Assembled signs will display here...</span>
+                    </div>
+
+                    <!-- Live Translation HUD (NEW) -->
+                    <div style="background: rgba(139, 92, 246, 0.04); border: 1px solid rgba(139, 92, 246, 0.15); padding: 10px 14px; border-radius: var(--radius-sm);">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Translated Output</div>
+                        <div id="translation-preview" style="font-size: 0.95rem; font-weight: 500; color: var(--accent); min-height: 22px; margin-top: 4px;">Original English sentence...</div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="controls-row">
+                        <button id="btn-add-word" disabled class="primary">➕ Add to Sentence</button>
+                        <button id="btn-speak-sentence" disabled>🔊 Speak Sentence</button>
+                        <button id="btn-clear-sentence" class="danger" disabled>🗑️ Clear</button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Right Panel: Voice Translation Chat & Settings -->
+            <section class="glass-panel chat-panel" aria-label="Voice Translation Hub">
+                <div>
+                    <div class="panel-header">
+                        <h2>💬 Translation & Voice Assist</h2>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px;">
+                        For the hearing partner: speak into the microphone to display your words to the signer.
+                    </p>
+                    
+                    <!-- Chat logs -->
+                    <div class="chat-log" id="chat-log" role="log">
+                        <div class="chat-message vocalist">
+                            <div class="chat-sender">System</div>
+                            <div>Welcome to SignWave! Use the dropdown below to translate hand-constructed sentences into other languages instantly.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Microphone Controller & Settings -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="mic-control-card">
+                        <button id="btn-mic-toggle" class="mic-button" aria-label="Toggle Voice Input">🎤</button>
+                        <div id="mic-status" class="mic-status-text">Click microphone to translate voice response</div>
+                        <div class="voice-command-hint">
+                            Voice controls: <strong>"clear sentence"</strong>, <strong>"speak sentence"</strong>, <strong>"backspace"</strong>
+                        </div>
+                    </div>
+
+                    <!-- Accessibility & Multi-lingual Settings -->
+                    <div class="accessibility-settings">
+                        
+                        <!-- Language Translator selector (NEW) -->
+                        <div class="setting-row">
+                            <span class="setting-label">🌐 Output Speech Language</span>
+                            <select id="translation-lang-select" style="padding: 4px 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.8rem; font-family: inherit;">
+                                <option value="en">English (Default)</option>
+                                <option value="es">Español (Spanish)</option>
+                                <option value="fr">Français (French)</option>
+                                <option value="de">Deutsch (German)</option>
+                                <option value="ja">日本語 (Japanese)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <span class="setting-label">🕶️ High Contrast Display</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-contrast">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">🔤 Display Text Size</span>
+                            <div class="btn-group">
+                                <button id="btn-font-dec" aria-label="Shrink Text">A-</button>
+                                <button id="btn-font-inc" aria-label="Enlarge Text">A+</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">🔊 Auto-Speak Sign Additions</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-auto-speak" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+    <!-- Application Scripts -->
+    <script src="gestures.js"></script>
+    <script src="speech.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
