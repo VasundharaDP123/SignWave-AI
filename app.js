@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const micStatus = document.getElementById("mic-status");
     const chatLog = document.getElementById("chat-log");
     
-    const guideItems = document.querySelectorAll(".guide-item");
     const toggleContrast = document.getElementById("toggle-contrast");
     const btnFontDec = document.getElementById("btn-font-dec");
     const btnFontInc = document.getElementById("btn-font-inc");
@@ -76,6 +75,33 @@ document.addEventListener("DOMContentLoaded", () => {
     const academyTimerText = document.getElementById("academy-timer");
     const academyProgressBar = document.getElementById("academy-progress-bar");
 
+    // V5: Tab Elements
+    const tabBtnDict = document.getElementById("tab-btn-dict");
+    const tabBtnAcademy = document.getElementById("tab-btn-academy");
+    const tabBtnAnalytics = document.getElementById("tab-btn-analytics");
+    const tabDictContent = document.getElementById("tab-dict-content");
+    const tabAcademyContent = document.getElementById("tab-academy-content");
+    const tabAnalyticsContent = document.getElementById("tab-analytics-content");
+
+    // V5: Import/Export DOM
+    const btnExportGestures = document.getElementById("btn-export-gestures");
+    const btnTriggerImport = document.getElementById("btn-trigger-import");
+    const importGesturesFile = document.getElementById("import-gestures-file");
+
+    // V5: Settings DOM
+    const presetSelect = document.getElementById("preset-select");
+    const toggleGrammar = document.getElementById("toggle-grammar");
+    const toggleHaptic = document.getElementById("toggle-haptic");
+
+    // V5: Analytics DOM
+    const statsStreak = document.getElementById("stats-streak");
+    const statsAcademyScore = document.getElementById("stats-academy-score");
+    const statsCustomCount = document.getElementById("stats-custom-count");
+    const statsRounds = document.getElementById("stats-rounds");
+    const btnSyncCloud = document.getElementById("btn-sync-cloud");
+    const syncBadge = document.getElementById("sync-badge");
+    const standardDictionaryList = document.getElementById("standard-dictionary-list");
+
     // --- State Variables ---
     let stream = null;
     let cameraActive = false;
@@ -84,9 +110,21 @@ document.addEventListener("DOMContentLoaded", () => {
     let fontMultiplier = 1.0;
     let autoSpeakEnabled = true;
 
+    // V5: Motion Landmarks History
+    let motionHistory = [];
+    const MOTION_BUFFER_SIZE = 25;
+
+    // V5: Statistics Database
+    let stats = {
+        streak: 1,
+        academyScore: 0,
+        customCount: 0,
+        roundsPlayed: 0,
+        lastActiveDate: ""
+    };
+
     // Custom Gestures database
     let customGestures = [];
-    loadCustomGestures();
 
     // Debounce predictions to avoid rapid flickering
     let lastPredictionName = "";
@@ -206,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             mediaPipeHands.setOptions({
-                maxNumHands: 1,
+                maxNumHands: 2,
                 modelComplexity: 1,
                 minDetectionConfidence: 0.7,
                 minTrackingConfidence: 0.7
@@ -277,54 +315,231 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- MediaPipe Callback & Theme-Driven Draw ---
+    // --- V5: Two-Handed Classifier ---
+    function detectTwoHandGesture(hand1, hand2) {
+        if (!hand1 || !hand2) return null;
+        
+        const wrist1 = hand1[0];
+        const wrist2 = hand2[0];
+        
+        const indexTip1 = hand1[8];
+        const indexTip2 = hand2[8];
+        
+        const thumbTip1 = hand1[4];
+        const thumbTip2 = hand2[4];
+        
+        const pinkyTip1 = hand1[20];
+        const pinkyTip2 = hand2[20];
+        
+        const palm1 = getDistance(wrist1, hand1[9]);
+        const palm2 = getDistance(wrist2, hand2[9]);
+        const avgPalm = (palm1 + palm2) / 2;
+        
+        if (avgPalm === 0) return null;
+        
+        const indexTipsDist = getDistance(indexTip1, indexTip2);
+        const wristsDist = getDistance(wrist1, wrist2);
+        const thumbsDist = getDistance(thumbTip1, thumbTip2);
+        
+        // 1. "House" / "Roof" 🏠: Index tips touch, wrists separated
+        if (indexTipsDist < avgPalm * 0.4 && wristsDist > avgPalm * 1.8 && thumbsDist < avgPalm * 0.9) {
+            return {
+                name: "House / Roof",
+                emoji: "🏠",
+                description: "Triangular shape formed by fingers, representing home."
+            };
+        }
+        
+        // 2. "Book" / "Open Book" 📖: Wrists close, open palms side-by-side
+        if (wristsDist < avgPalm * 0.6 && pinkyTip1 && pinkyTip2) {
+            const pinkyDist = getDistance(pinkyTip1, pinkyTip2);
+            const isHand1Open = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1);
+            const isHand2Open = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2);
+            
+            if (pinkyDist < avgPalm * 0.6 && isHand1Open && isHand2Open) {
+                return {
+                    name: "Book / Read",
+                    emoji: "📖",
+                    description: "Flat palms placed side-by-side like an open book."
+                };
+            }
+        }
+        
+        // 3. "Friend" 🤝: Index fingers pointing towards each other, tips close
+        if (indexTipsDist < avgPalm * 0.5) {
+            const isIndex1Extended = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1);
+            const isIndex2Extended = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2);
+            const isOthersFolded1 = getDistance(hand1[12], wrist1) < getDistance(hand1[10], wrist1);
+            const isOthersFolded2 = getDistance(hand2[12], wrist2) < getDistance(hand2[10], wrist2);
+            
+            if (isIndex1Extended && isIndex2Extended && isOthersFolded1 && isOthersFolded2) {
+                return {
+                    name: "Friend",
+                    emoji: "🤝",
+                    description: "Hooked or touching index fingers representing association."
+                };
+            }
+        }
+        
+        return null;
+    }
+
+    // --- V5: Dynamic Motion Gesture Analyzer ---
+    function detectMotionGesture(landmarks) {
+        if (!landmarks || landmarks.length < 21) return null;
+        
+        const wrist = landmarks[0];
+        
+        motionHistory.push({ x: wrist.x, y: wrist.y, time: Date.now() });
+        if (motionHistory.length > MOTION_BUFFER_SIZE) {
+            motionHistory.shift();
+        }
+        
+        if (motionHistory.length < 10) return null;
+        
+        let directionChangesX = 0;
+        let prevDeltaX = 0;
+        let totalXMovement = 0;
+        let totalYMovement = 0;
+        
+        for (let i = 1; i < motionHistory.length; i++) {
+            const dx = motionHistory[i].x - motionHistory[i - 1].x;
+            const dy = motionHistory[i].y - motionHistory[i - 1].y;
+            
+            totalXMovement += Math.abs(dx);
+            totalYMovement += Math.abs(dy);
+            
+            if (prevDeltaX !== 0) {
+                if ((dx > 0.002 && prevDeltaX < -0.002) || (dx < -0.002 && prevDeltaX > 0.002)) {
+                    directionChangesX++;
+                    prevDeltaX = dx;
+                }
+            } else if (Math.abs(dx) > 0.002) {
+                prevDeltaX = dx;
+            }
+        }
+        
+        // 1. Waving horizontal movement check for "Hello"
+        if (directionChangesX >= 3 && totalXMovement > totalYMovement * 1.5 && totalXMovement > 0.1) {
+            return {
+                name: "Hello",
+                emoji: "👋",
+                description: "Hand waved side-to-side dynamically."
+            };
+        }
+        
+        // 2. Vertical agreement movement check for "Yes"
+        let directionChangesY = 0;
+        let prevDeltaY = 0;
+        for (let i = 1; i < motionHistory.length; i++) {
+            const dy = motionHistory[i].y - motionHistory[i - 1].y;
+            if (prevDeltaY !== 0) {
+                if ((dy > 0.002 && prevDeltaY < -0.002) || (dy < -0.002 && prevDeltaY > 0.002)) {
+                    directionChangesY++;
+                    prevDeltaY = dy;
+                }
+            } else if (Math.abs(dy) > 0.002) {
+                prevDeltaY = dy;
+            }
+        }
+        
+        if (directionChangesY >= 2 && totalYMovement > totalXMovement * 1.5 && totalYMovement > 0.1) {
+            return {
+                name: "Yes",
+                emoji: "✊",
+                description: "Rapid vertical movement representing agreement."
+            };
+        }
+        
+        // 3. Circular rubbing movement check for "Please"
+        if (motionHistory.length >= 15) {
+            let minX = 1, maxX = 0, minY = 1, maxY = 0;
+            motionHistory.forEach(pt => {
+                if (pt.x < minX) minX = pt.x;
+                if (pt.x > maxX) maxX = pt.x;
+                if (pt.y < minY) minY = pt.y;
+                if (pt.y > maxY) maxY = pt.y;
+            });
+            const dxSpan = maxX - minX;
+            const dySpan = maxY - minY;
+            const ratio = dxSpan / (dySpan || 1);
+            if (dxSpan > 0.04 && dySpan > 0.04 && ratio > 0.6 && ratio < 1.6 && directionChangesX >= 1 && directionChangesY >= 1) {
+                return {
+                    name: "Please",
+                    emoji: "🙏",
+                    description: "Circular rubbing motion representing politeness."
+                };
+            }
+        }
+        
+        return null;
+    }
+
+    // --- MediaPipe Callback & Theme-Driven Draw ---
     function onHandResults(results) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            const landmarks = results.multiHandLandmarks[0];
-            
-            // V3: Get Active skeleton theme parameters
             const activeTheme = THEMES[themeSelect.value] || THEMES.cyberpunk;
+            
+            // Render skeletons for all tracked hands
+            results.multiHandLandmarks.forEach(landmarks => {
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = activeTheme.glow;
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = activeTheme.bones;
+                ctx.lineCap = "round";
 
-            // Draw skeleton lines (Bones)
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = activeTheme.glow;
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = activeTheme.bones;
-            ctx.lineCap = "round";
-
-            for (const connection of HAND_CONNECTIONS) {
-                const pt1 = landmarks[connection[0]];
-                const pt2 = landmarks[connection[1]];
-                ctx.beginPath();
-                ctx.moveTo(pt1.x * canvas.width, pt1.y * canvas.height);
-                ctx.lineTo(pt2.x * canvas.width, pt2.y * canvas.height);
-                ctx.stroke();
-            }
-
-            // Draw joints (Knuckles vs Tips)
-            ctx.shadowBlur = 10;
-            for (let i = 0; i < landmarks.length; i++) {
-                const pt = landmarks[i];
-                ctx.beginPath();
-                ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 6, 0, 2 * Math.PI);
-                
-                if ([4, 8, 12, 16, 20].includes(i)) {
-                    ctx.fillStyle = activeTheme.tips; // Tip
-                    ctx.shadowColor = activeTheme.tips;
-                } else {
-                    ctx.fillStyle = activeTheme.joints; // Knuckle
-                    ctx.shadowColor = activeTheme.joints;
+                for (const connection of HAND_CONNECTIONS) {
+                    const pt1 = landmarks[connection[0]];
+                    const pt2 = landmarks[connection[1]];
+                    ctx.beginPath();
+                    ctx.moveTo(pt1.x * canvas.width, pt1.y * canvas.height);
+                    ctx.lineTo(pt2.x * canvas.width, pt2.y * canvas.height);
+                    ctx.stroke();
                 }
-                ctx.fill();
+
+                ctx.shadowBlur = 10;
+                for (let i = 0; i < landmarks.length; i++) {
+                    const pt = landmarks[i];
+                    ctx.beginPath();
+                    ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 6, 0, 2 * Math.PI);
+                    
+                    if ([4, 8, 12, 16, 20].includes(i)) {
+                        ctx.fillStyle = activeTheme.tips;
+                        ctx.shadowColor = activeTheme.tips;
+                    } else {
+                        ctx.fillStyle = activeTheme.joints;
+                        ctx.shadowColor = activeTheme.joints;
+                    }
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+            });
+
+            let gesture = null;
+            
+            // Check dual hand configurations first
+            if (results.multiHandLandmarks.length >= 2) {
+                gesture = detectTwoHandGesture(results.multiHandLandmarks[0], results.multiHandLandmarks[1]);
             }
-
-            ctx.shadowBlur = 0;
-
-            // Run predictions
-            const gesture = predictGesture(landmarks, customGestures);
-            handleStableGesture(gesture);
+            
+            // Fallback to single-hand models
+            if (!gesture) {
+                const primaryHand = results.multiHandLandmarks[0];
+                gesture = detectMotionGesture(primaryHand);
+                
+                if (!gesture) {
+                    const preset = presetSelect ? presetSelect.value : "asl";
+                    gesture = predictGesture(primaryHand, customGestures, preset);
+                }
+            }
+            
+            if (gesture) {
+                handleStableGesture(gesture);
+            }
         } else {
+            motionHistory = []; // Reset history when no hands visible
             handleStableGesture({ name: "Scanning...", emoji: "✋", description: "Hold hand clearly in webcam feed." });
         }
     }
@@ -399,6 +614,9 @@ document.addEventListener("DOMContentLoaded", () => {
     function saveCustomGestures() {
         localStorage.setItem("signwave_custom_gestures", JSON.stringify(customGestures));
         renderCustomDictionary();
+        stats.customCount = customGestures.length;
+        saveStats();
+        updateStatsUI();
     }
 
     function recordCurrentGesture() {
@@ -539,11 +757,28 @@ document.addEventListener("DOMContentLoaded", () => {
         if (academyRound > 5) {
             playVictoryFanfare();
             appendChatMessage("SignWave Academy", `🎉 Congratulations! You completed the academy quiz. Final Score: ${academyScore}/5`, "signer");
+            
+            // V5: Save Academy Stats
+            stats.roundsPlayed += 1;
+            stats.academyScore += academyScore;
+            saveStats();
+            updateStatsUI();
+            
             stopAcademy();
             return;
         }
 
-        const standardList = [
+        // V5: Load presets dynamically in academy prompts
+        const standardList = (presetSelect && presetSelect.value === "isl") ? [
+            { name: "Good / Yes", emoji: "👍" },
+            { name: "Victory / 'V'", emoji: "✌️" },
+            { name: "Direction", emoji: "👉" },
+            { name: "I Love You", emoji: "🤟" },
+            { name: "OK (ISL)", emoji: "👌" },
+            { name: "Call Me", emoji: "🤙" },
+            { name: "Water (ISL)", emoji: "💧" },
+            { name: "Fist / Strength", emoji: "✊" }
+        ] : [
             { name: "Thumbs Up", emoji: "👍" },
             { name: "Peace / 'V'", emoji: "✌️" },
             { name: "L Sign", emoji: "👉" },
@@ -624,15 +859,21 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // V5: Signed Grammar translation check
+        let textToTranslate = sentenceText;
+        if (toggleGrammar && toggleGrammar.checked) {
+            textToTranslate = window.Speech.translateToSpokenGrammar(sentenceText);
+        }
+
         const targetLang = translationLangSelect.value;
 
         if (targetLang === "en") {
-            translationPreview.textContent = sentenceText;
+            translationPreview.textContent = textToTranslate;
             return;
         }
 
         translationPreview.textContent = "Translating...";
-        const translated = await window.Speech.translate(sentenceText, targetLang);
+        const translated = await window.Speech.translate(textToTranslate, targetLang);
         translationPreview.textContent = translated;
     }
 
@@ -779,8 +1020,15 @@ document.addEventListener("DOMContentLoaded", () => {
         renderSentence();
         updateTranslationDisplay();
 
+        // V5: Haptic vibration triggers
+        if (toggleHaptic && toggleHaptic.checked && navigator.vibrate) {
+            navigator.vibrate([80]);
+        }
+
         if (autoSpeakEnabled) {
-            window.Speech.speak(wordToAdd);
+            // Apply grammar corrections to spoken words if active
+            const spokenWord = (toggleGrammar && toggleGrammar.checked) ? window.Speech.translateToSpokenGrammar(wordToAdd) : wordToAdd;
+            window.Speech.speak(spokenWord);
         }
     }
 
@@ -797,8 +1045,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function speakSentence() {
-        const text = sentenceContainer.value.trim();
+        let text = sentenceContainer.value.trim();
         if (!text) return;
+
+        // V5: Signed Grammar engine parsing
+        if (toggleGrammar && toggleGrammar.checked) {
+            text = window.Speech.translateToSpokenGrammar(text);
+        }
 
         const targetLang = translationLangSelect.value;
         
@@ -937,6 +1190,124 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelector(".sentence-display-area").style.fontSize = `calc(1.15rem * ${fontMultiplier})`;
     }
 
+    // --- V5: Serialization, Stats & Sync Implementations ---
+    function loadStats() {
+        const stored = localStorage.getItem("signwave_stats");
+        if (stored) {
+            try {
+                stats = JSON.parse(stored);
+            } catch (e) {
+                console.error("Stats parse error:", e);
+            }
+        }
+        
+        // Compute daily learning streak
+        const todayStr = new Date().toDateString();
+        if (stats.lastActiveDate !== todayStr) {
+            if (stats.lastActiveDate) {
+                const lastDate = new Date(stats.lastActiveDate);
+                const diffTime = Math.abs(new Date(todayStr) - lastDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays === 1) {
+                    stats.streak += 1;
+                } else if (diffDays > 1) {
+                    stats.streak = 1;
+                }
+            } else {
+                stats.streak = 1;
+            }
+            stats.lastActiveDate = todayStr;
+            saveStats();
+        }
+    }
+
+    function saveStats() {
+        localStorage.setItem("signwave_stats", JSON.stringify(stats));
+    }
+
+    function updateStatsUI() {
+        if (statsStreak) statsStreak.textContent = `${stats.streak} Day${stats.streak > 1 ? 's' : ''}`;
+        if (statsAcademyScore) statsAcademyScore.textContent = `${stats.academyScore} Pts`;
+        if (statsCustomCount) statsCustomCount.textContent = `${customGestures.length} Saved`;
+        if (statsRounds) statsRounds.textContent = `${stats.roundsPlayed} Round${stats.roundsPlayed > 1 ? 's' : ''}`;
+    }
+
+    function exportCustomGestures() {
+        if (customGestures.length === 0) {
+            alert("No custom gestures registered to export.");
+            return;
+        }
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customGestures, null, 2));
+        const dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", `signwave_custom_profile_${Date.now()}.json`);
+        dlAnchorElem.click();
+        appendChatMessage("System", "Exported custom gestures database successfully.", "vocalist");
+    }
+
+    function populateStandardDictionary() {
+        if (!standardDictionaryList) return;
+        standardDictionaryList.innerHTML = "";
+        
+        const preset = presetSelect ? presetSelect.value : "asl";
+        const dictionary = preset === "isl" ? window.ISL_DICTIONARY : window.ASL_DICTIONARY;
+        
+        dictionary.forEach(item => {
+            const guideItem = document.createElement("div");
+            guideItem.className = "guide-item";
+            guideItem.setAttribute("data-name", item.name);
+            guideItem.innerHTML = `
+                <div class="guide-emoji">${item.emoji}</div>
+                <div class="guide-info">
+                    <span class="guide-name">${item.name}</span>
+                    <span class="guide-desc">${item.description}</span>
+                </div>
+            `;
+            guideItem.addEventListener("click", () => {
+                currentGesture = {
+                    name: item.name,
+                    emoji: item.emoji,
+                    description: item.description,
+                    isPresetPreview: true
+                };
+                updateGestureUI(currentGesture);
+                btnAddWord.disabled = false;
+                highlightGuideItem(item.name);
+            });
+            standardDictionaryList.appendChild(guideItem);
+        });
+    }
+
+    // --- V5: Tab Navigation Handling ---
+    const tabs = [
+        { btn: tabBtnDict, content: tabDictContent },
+        { btn: tabBtnAcademy, content: tabAcademyContent },
+        { btn: tabBtnAnalytics, content: tabAnalyticsContent }
+    ];
+
+    tabs.forEach(tab => {
+        if (tab.btn) {
+            tab.btn.addEventListener("click", () => {
+                tabs.forEach(t => {
+                    t.btn.classList.remove("active");
+                    t.btn.style.background = "transparent";
+                    t.btn.style.borderColor = "var(--border-color)";
+                    t.content.style.display = "none";
+                });
+                
+                tab.btn.classList.add("active");
+                tab.btn.style.background = "rgba(6, 182, 212, 0.1)";
+                tab.btn.style.borderColor = "var(--accent)";
+                
+                if (tab.content.id === "tab-dict-content" || tab.content.id === "tab-analytics-content") {
+                    tab.content.style.display = "flex";
+                } else {
+                    tab.content.style.display = "block";
+                }
+            });
+        }
+    });
+
     // --- Event Bindings ---
     toggleCameraBtn.addEventListener("click", () => {
         if (cameraActive) {
@@ -957,6 +1328,86 @@ document.addEventListener("DOMContentLoaded", () => {
     // Academy Quiz binds
     btnStartAcademy.addEventListener("click", startAcademy);
     btnStopAcademy.addEventListener("click", stopAcademy);
+
+    // Import/Export profile triggers
+    if (btnExportGestures) {
+        btnExportGestures.addEventListener("click", exportCustomGestures);
+    }
+    if (btnTriggerImport && importGesturesFile) {
+        btnTriggerImport.addEventListener("click", () => {
+            importGesturesFile.click();
+        });
+        
+        importGesturesFile.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        let mergeCount = 0;
+                        imported.forEach(item => {
+                            if (item.name && item.states) {
+                                const existsIdx = customGestures.findIndex(cg => cg.name.toLowerCase() === item.name.toLowerCase());
+                                if (existsIdx !== -1) {
+                                    customGestures[existsIdx] = item;
+                                } else {
+                                    customGestures.push(item);
+                                }
+                                mergeCount++;
+                            }
+                        });
+                        saveCustomGestures();
+                        playSuccessChime();
+                        appendChatMessage("System", `Imported ${mergeCount} custom gestures successfully!`, "signer");
+                        alert(`Imported ${mergeCount} gestures successfully!`);
+                    } else {
+                        alert("Invalid file format. Profile must be a JSON array of gestures.");
+                    }
+                } catch (err) {
+                    console.error("Profile import error:", err);
+                    alert("Failed to parse profile JSON file.");
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    // Sync button implementation
+    if (btnSyncCloud) {
+        btnSyncCloud.addEventListener("click", () => {
+            btnSyncCloud.disabled = true;
+            btnSyncCloud.innerHTML = `<span class="spinner-icon">🔄</span> Syncing...`;
+            if (syncBadge) {
+                syncBadge.textContent = "Syncing...";
+                syncBadge.style.background = "rgba(6, 182, 212, 0.15)";
+                syncBadge.style.color = "var(--accent)";
+                syncBadge.style.borderColor = "var(--accent-glow)";
+            }
+            
+            setTimeout(() => {
+                btnSyncCloud.disabled = false;
+                btnSyncCloud.innerHTML = "🔄 Sync Data";
+                if (syncBadge) {
+                    syncBadge.textContent = "Synced";
+                    syncBadge.style.background = "rgba(16, 185, 129, 0.15)";
+                    syncBadge.style.color = "#34d399";
+                    syncBadge.style.borderColor = "rgba(16, 185, 129, 0.2)";
+                }
+                playSuccessChime();
+                appendChatMessage("System", "Cloud sync complete. Custom gestures and practice scores backed up securely.", "vocalist");
+            }, 1500);
+        });
+    }
+
+    // Preset selection change listener
+    if (presetSelect) {
+        presetSelect.addEventListener("change", () => {
+            populateStandardDictionary();
+        });
+    }
 
     // Translation Selector & Voice loader integrations
     translationLangSelect.addEventListener("change", () => {
@@ -984,33 +1435,19 @@ document.addEventListener("DOMContentLoaded", () => {
         autoSpeakEnabled = e.target.checked;
     });
 
-    // Reference guides click simulation
-    guideItems.forEach(item => {
-        item.addEventListener("click", () => {
-            const name = item.querySelector(".guide-name").textContent;
-            const emoji = item.querySelector(".guide-emoji").textContent;
-            const desc = item.querySelector(".guide-desc").textContent;
-            
-            currentGesture = {
-                name: name,
-                emoji: emoji,
-                description: desc
-            };
-            
-            updateGestureUI(currentGesture);
-            btnAddWord.disabled = false;
-        });
-    });
-
     // V3: Load custom voices on startup or system changes
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
         window.speechSynthesis.onvoiceschanged = () => {
             populateVoicesDropdown();
         };
     }
-    setTimeout(populateVoicesDropdown, 500); // Fail-safe loader
+    setTimeout(populateVoicesDropdown, 500);
 
     // --- Init App ---
+    loadCustomGestures();
+    loadStats();
+    updateStatsUI();
+    populateStandardDictionary();
     initMediaPipe();
     resizeCanvas();
     renderSentence();

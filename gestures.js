@@ -3,7 +3,37 @@
  * 
  * Maps 21 hand landmarks from MediaPipe to finger states, checks
  * against custom user-defined gestures first, then falls back to default signs.
+ * Supports ASL (American Sign Language) and ISL (Indian Sign Language) presets.
  */
+
+// Preset Vocabulary Lists
+const ASL_DICTIONARY = [
+    { name: "Hello / Stop", emoji: "👋", description: "All fingers extended straight" },
+    { name: "Fist / 'A'", emoji: "✊", description: "All fingers folded in a fist" },
+    { name: "I Love You", emoji: "🤟", description: "Thumb, Index, Pinky extended" },
+    { name: "Peace / 'V'", emoji: "✌️", description: "Index & Middle extended" },
+    { name: "L Sign", emoji: "👉", description: "Thumb and Index form an L" },
+    { name: "Pointing / '1'", emoji: "☝️", description: "Only Index finger extended" },
+    { name: "OK", emoji: "👌", description: "Thumb & Index tips touching" },
+    { name: "Thumbs Up", emoji: "👍", description: "Thumb up, others folded" },
+    { name: "Thumbs Down", emoji: "👎", description: "Thumb down, others folded" },
+    { name: "Rock On", emoji: "🤘", description: "Index & Pinky extended" },
+    { name: "Call Me", emoji: "🤙", description: "Thumb & Pinky extended" }
+];
+
+const ISL_DICTIONARY = [
+    { name: "Namaste / Stop", emoji: "👋", description: "Flat open palm greeting or halt" },
+    { name: "Fist / Strength", emoji: "✊", description: "All fingers folded in a fist" },
+    { name: "I Love You", emoji: "🤟", description: "Thumb, Index, Pinky extended" },
+    { name: "Victory / 'V'", emoji: "✌️", description: "Index & Middle extended" },
+    { name: "Direction", emoji: "👉", description: "Thumb and Index form an L" },
+    { name: "Water (ISL)", emoji: "💧", description: "Index pointing to mouth/chin" },
+    { name: "OK (ISL)", emoji: "👌", description: "Thumb & Index tips touching" },
+    { name: "Good / Yes", emoji: "👍", description: "Thumb up, others folded" },
+    { name: "Bad / No", emoji: "👎", description: "Thumb down, others folded" },
+    { name: "Horns / Rock", emoji: "🤘", description: "Index & Pinky extended" },
+    { name: "Call Me", emoji: "🤙", description: "Thumb & Pinky extended" }
+];
 
 // Helper to calculate Euclidean distance in 3D
 function getDistance(pt1, pt2) {
@@ -15,8 +45,8 @@ function getDistance(pt1, pt2) {
     );
 }
 
-// Predict gesture based on landmarks and optional custom gestures database
-function predictGesture(landmarks, customGestures = []) {
+// Predict gesture based on landmarks, custom gestures database, and active language preset
+function predictGesture(landmarks, customGestures = [], presetName = "asl") {
     if (!landmarks || landmarks.length < 21) {
         return { name: "No Hand Detected", emoji: "👋", description: "Bring your hand into the camera view." };
     }
@@ -85,125 +115,125 @@ function predictGesture(landmarks, customGestures = []) {
         }
     }
 
-    // --- 2. DEFAULT SYSTEM GESTURES ---
+    // --- 2. DEFAULT SYSTEM GESTURES (AFFECTED BY PRESET) ---
     const thumbIndexTipDist = getDistance(thumbTip, indexTip);
 
-    // OK Sign: Thumb and Index tips touch, Middle, Ring, Pinky extended
+    // OK Sign
     if (thumbIndexTipDist < (palmSize * 0.25) && isMiddleExtended && isRingExtended && isPinkyExtended) {
         return {
-            name: "OK",
+            name: presetName === "isl" ? "OK (ISL)" : "OK",
             emoji: "👌",
-            description: "Agreement, approval, or 'Perfect'.",
+            description: presetName === "isl" ? "Thumb & Index tips touching" : "Agreement, approval, or 'Perfect'.",
             states
         };
     }
 
-    // Hello / Open Palm: All fingers extended
+    // Hello / Stop / Namaste
     if (isThumbExtended && isIndexExtended && isMiddleExtended && isRingExtended && isPinkyExtended) {
         return {
-            name: "Hello / Stop",
+            name: presetName === "isl" ? "Namaste / Stop" : "Hello / Stop",
             emoji: "👋",
-            description: "Friendly greeting or asking to halt.",
+            description: presetName === "isl" ? "Flat open palm greeting or halt" : "All fingers extended straight",
             states
         };
     }
 
-    // Fist / Letter 'A': All fingers folded
+    // Fist / Letter 'A'
     if (!isThumbExtended && !isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended) {
         return {
-            name: "Fist / 'A'",
+            name: presetName === "isl" ? "Fist / Strength" : "Fist / 'A'",
             emoji: "✊",
-            description: "Letter A or representation of solidarity/strength.",
+            description: "All fingers folded in a fist",
             states
         };
     }
 
-    // I Love You (ILY): Thumb, Index, Pinky extended; Middle, Ring folded
+    // I Love You (ILY)
     if (isThumbExtended && isIndexExtended && !isMiddleExtended && !isRingExtended && isPinkyExtended) {
         return {
             name: "I Love You",
             emoji: "🤟",
-            description: "Universal sign for affection.",
+            description: "Thumb, Index, Pinky extended",
             states
         };
     }
 
-    // Peace Sign / 'V' / '2': Index and Middle extended; Ring, Pinky, Thumb folded
+    // Peace Sign / Victory
     if (!isThumbExtended && isIndexExtended && isMiddleExtended && !isRingExtended && !isPinkyExtended) {
         return {
-            name: "Peace / 'V'",
+            name: presetName === "isl" ? "Victory / 'V'" : "Peace / 'V'",
             emoji: "✌️",
-            description: "Victory, Peace, or number 2.",
+            description: "Index & Middle extended",
             states
         };
     }
 
-    // L Sign: Thumb and Index extended; Middle, Ring, Pinky folded
+    // L Sign / Direction
     if (isThumbExtended && isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended) {
         return {
-            name: "L Sign",
+            name: presetName === "isl" ? "Direction" : "L Sign",
             emoji: "👉",
-            description: "Letter L, direction indicator, or 'Left'.",
+            description: "Thumb and Index form an L",
             states
         };
     }
 
-    // Thumbs Up / Thumbs Down: Thumb extended; other fingers folded
+    // Thumbs Up
     if (isThumbExtended && !isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended) {
         const isUpright = thumbTip.y < wrist.y;
         if (isUpright) {
             return {
-                name: "Thumbs Up",
+                name: presetName === "isl" ? "Good / Yes" : "Thumbs Up",
                 emoji: "👍",
-                description: "Positive response, 'Yes', or 'Good'.",
+                description: "Thumb up, others folded",
                 states
             };
         } else {
             return {
-                name: "Thumbs Down",
+                name: presetName === "isl" ? "Bad / No" : "Thumbs Down",
                 emoji: "👎",
-                description: "Negative response, 'No', or 'Bad'.",
+                description: "Thumb down, others folded",
                 states
             };
         }
     }
 
-    // Pointing / 1 / 'Up': Only Index extended; others folded
+    // Pointing / Water (ISL)
     if (!isThumbExtended && isIndexExtended && !isMiddleExtended && !isRingExtended && !isPinkyExtended) {
         return {
-            name: "Pointing / '1'",
-            emoji: "☝️",
-            description: "Number 1, pointing up, or selection.",
+            name: presetName === "isl" ? "Water (ISL)" : "Pointing / '1'",
+            emoji: presetName === "isl" ? "💧" : "☝️",
+            description: presetName === "isl" ? "Index pointing to mouth/chin" : "Only Index finger extended",
             states
         };
     }
 
-    // W Sign / '3': Index, Middle, Ring extended; Thumb, Pinky folded
+    // W Sign / '3'
     if (!isThumbExtended && isIndexExtended && isMiddleExtended && isRingExtended && !isPinkyExtended) {
         return {
-            name: "Letter 'W' / '3'",
+            name: presetName === "isl" ? "OK (ISL)" : "Letter 'W' / '3'",
             emoji: "👌",
-            description: "Letter W, or number 3.",
+            description: "Index, Middle, Ring extended",
             states
         };
     }
 
-    // Rock On / Horns: Index and Pinky extended; Middle, Ring, Thumb folded
+    // Rock On / Horns
     if (!isThumbExtended && isIndexExtended && !isMiddleExtended && !isRingExtended && isPinkyExtended) {
         return {
-            name: "Rock On",
+            name: presetName === "isl" ? "Horns / Rock" : "Rock On",
             emoji: "🤘",
-            description: "Rock sign, horns, or positive energy.",
+            description: "Index & Pinky extended",
             states
         };
     }
 
-    // Call Me: Thumb and Pinky extended; Index, Middle, Ring folded
+    // Call Me
     if (isThumbExtended && !isIndexExtended && !isMiddleExtended && !isRingExtended && isPinkyExtended) {
         return {
             name: "Call Me",
             emoji: "🤙",
-            description: "Phone signal or 'Call me'.",
+            description: "Thumb & Pinky extended",
             states
         };
     }
@@ -224,6 +254,14 @@ function predictGesture(landmarks, customGestures = []) {
     };
 }
 
+// Expose definitions for browser global scope
+if (typeof window !== 'undefined') {
+    window.predictGesture = predictGesture;
+    window.getDistance = getDistance;
+    window.ASL_DICTIONARY = ASL_DICTIONARY;
+    window.ISL_DICTIONARY = ISL_DICTIONARY;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { predictGesture, getDistance };
+    module.exports = { predictGesture, getDistance, ASL_DICTIONARY, ISL_DICTIONARY };
 }

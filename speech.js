@@ -321,6 +321,54 @@ class SpeechService {
         }
         return null;
     }
+
+    // --- V5: Signed Grammar Translator Engine ---
+    translateToSpokenGrammar(sentenceText) {
+        if (!sentenceText || sentenceText.trim() === "") return sentenceText;
+        
+        let processed = sentenceText.trim().toLowerCase();
+        
+        // Grammar corrections dictionary
+        const mappings = [
+            { pattern: /\b(hello stop)\b/gi, replacement: "hello" },
+            { pattern: /\b(namaste stop)\b/gi, replacement: "hello" },
+            { pattern: /\b(hello thanks water)\b/gi, replacement: "hello, thank you. I need water." },
+            { pattern: /\b(hello need help)\b/gi, replacement: "hello, I need help." },
+            { pattern: /\b(water emergency)\b/gi, replacement: "I need water immediately! It is an emergency." },
+            { pattern: /\b(no feel good)\b/gi, replacement: "I do not feel well." },
+            { pattern: /\b(bad feel)\b/gi, replacement: "I feel sick." },
+            { pattern: /\b(ok thank you)\b/gi, replacement: "okay, thank you." },
+            { pattern: /\b(me need help)\b/gi, replacement: "I need help." },
+            { pattern: /\b(you need help)\b/gi, replacement: "Do you need help?" },
+            { pattern: /\b(me eat water)\b/gi, replacement: "I want to drink water." },
+            { pattern: /\b(me want water)\b/gi, replacement: "I would like some water." },
+            { pattern: /\b(good day)\b/gi, replacement: "have a good day." },
+            { pattern: /\b(call me emergency)\b/gi, replacement: "please call me, it is an emergency!" }
+        ];
+
+        // Apply direct mappings
+        let matched = false;
+        for (const map of mappings) {
+            if (map.pattern.test(processed)) {
+                processed = processed.replace(map.pattern, map.replacement);
+                matched = true;
+            }
+        }
+
+        if (!matched) {
+            // General heuristics to clean up basic pidgin sign grammar
+            processed = processed.replace(/\bme\b/g, "I");
+            processed = processed.replace(/\bi need\b/g, "I need");
+            processed = processed.charAt(0).toUpperCase() + processed.slice(1);
+            if (!processed.endsWith(".") && !processed.endsWith("?") && !processed.endsWith("!")) {
+                processed += ".";
+            }
+            return processed;
+        }
+
+        processed = processed.charAt(0).toUpperCase() + processed.slice(1);
+        return processed;
+    }
 }
 
 window.Speech = new SpeechService();
