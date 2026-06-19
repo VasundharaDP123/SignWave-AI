@@ -331,8 +331,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const pinkyTip1 = hand1[20];
         const pinkyTip2 = hand2[20];
         
-        const palm1 = getDistance(wrist1, hand1[9]);
-        const palm2 = getDistance(wrist2, hand2[9]);
+        // Calculate stable knuckle-relative sizes
+        const palm1 = getDistance(hand1[5], hand1[17]) * 1.15;
+        const palm2 = getDistance(hand2[5], hand2[17]) * 1.15;
         const avgPalm = (palm1 + palm2) / 2;
         
         if (avgPalm === 0) return null;
@@ -353,8 +354,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // 2. "Book" / "Open Book" 📖: Wrists close, open palms side-by-side
         if (wristsDist < avgPalm * 0.6 && pinkyTip1 && pinkyTip2) {
             const pinkyDist = getDistance(pinkyTip1, pinkyTip2);
-            const isHand1Open = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1);
-            const isHand2Open = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2);
+            const isHand1Open = getDistance(indexTip1, hand1[5]) > palm1 * 0.45 && getDistance(hand1[12], hand1[9]) > palm1 * 0.45;
+            const isHand2Open = getDistance(indexTip2, hand2[5]) > palm2 * 0.45 && getDistance(hand2[12], hand2[9]) > palm2 * 0.45;
             
             if (pinkyDist < avgPalm * 0.6 && isHand1Open && isHand2Open) {
                 return {
@@ -367,10 +368,10 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // 3. "Friend" 🤝: Index fingers pointing towards each other, tips close
         if (indexTipsDist < avgPalm * 0.5) {
-            const isIndex1Extended = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1);
-            const isIndex2Extended = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2);
-            const isOthersFolded1 = getDistance(hand1[12], wrist1) < getDistance(hand1[10], wrist1);
-            const isOthersFolded2 = getDistance(hand2[12], wrist2) < getDistance(hand2[10], wrist2);
+            const isIndex1Extended = getDistance(indexTip1, hand1[5]) > palm1 * 0.45;
+            const isIndex2Extended = getDistance(indexTip2, hand2[5]) > palm2 * 0.45;
+            const isOthersFolded1 = getDistance(hand1[12], hand1[9]) < palm1 * 0.45;
+            const isOthersFolded2 = getDistance(hand2[12], hand2[9]) < palm2 * 0.45;
             
             if (isIndex1Extended && isIndex2Extended && isOthersFolded1 && isOthersFolded2) {
                 return {
@@ -385,6 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- V5: Dynamic Motion Gesture Analyzer ---
+    // --- V5: Dynamic Motion Gesture Analyzer ---
     function detectMotionGesture(landmarks) {
         if (!landmarks || landmarks.length < 21) return null;
         
@@ -395,12 +397,14 @@ document.addEventListener("DOMContentLoaded", () => {
             motionHistory.shift();
         }
         
-        if (motionHistory.length < 15) return null;
+        if (motionHistory.length < 10) return null;
         
         let directionChangesX = 0;
         let prevDeltaX = 0;
         let totalXMovement = 0;
         let totalYMovement = 0;
+        
+        const MIN_DELTA = 0.005; // Ignore small noise/jitter
         
         for (let i = 1; i < motionHistory.length; i++) {
             const dx = motionHistory[i].x - motionHistory[i - 1].x;
@@ -410,17 +414,17 @@ document.addEventListener("DOMContentLoaded", () => {
             totalYMovement += Math.abs(dy);
             
             if (prevDeltaX !== 0) {
-                if ((dx > 0.003 && prevDeltaX < -0.003) || (dx < -0.003 && prevDeltaX > 0.003)) {
+                if ((dx > MIN_DELTA && prevDeltaX < -MIN_DELTA) || (dx < -MIN_DELTA && prevDeltaX > MIN_DELTA)) {
                     directionChangesX++;
                     prevDeltaX = dx;
                 }
-            } else if (Math.abs(dx) > 0.003) {
+            } else if (Math.abs(dx) > MIN_DELTA) {
                 prevDeltaX = dx;
             }
         }
         
-        // 1. Waving horizontal movement check for "Hello"
-        if (directionChangesX >= 4 && totalXMovement > totalYMovement * 1.8 && totalXMovement > 0.25) {
+        // 1. Waving horizontal movement check for "Hello" (relaxed X/Y ratio and lower minimum displacement)
+        if (directionChangesX >= 2 && totalXMovement > totalYMovement * 1.1 && totalXMovement > 0.06) {
             return {
                 name: "Hello",
                 emoji: "👋",
@@ -434,16 +438,16 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let i = 1; i < motionHistory.length; i++) {
             const dy = motionHistory[i].y - motionHistory[i - 1].y;
             if (prevDeltaY !== 0) {
-                if ((dy > 0.003 && prevDeltaY < -0.003) || (dy < -0.003 && prevDeltaY > 0.003)) {
+                if ((dy > MIN_DELTA && prevDeltaY < -MIN_DELTA) || (dy < -MIN_DELTA && prevDeltaY > MIN_DELTA)) {
                     directionChangesY++;
                     prevDeltaY = dy;
                 }
-            } else if (Math.abs(dy) > 0.003) {
+            } else if (Math.abs(dy) > MIN_DELTA) {
                 prevDeltaY = dy;
             }
         }
         
-        if (directionChangesY >= 3 && totalYMovement > totalXMovement * 1.8 && totalYMovement > 0.25) {
+        if (directionChangesY >= 2 && totalYMovement > totalXMovement * 1.1 && totalYMovement > 0.06) {
             return {
                 name: "Yes",
                 emoji: "✊",
@@ -452,7 +456,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         // 3. Circular rubbing movement check for "Please"
-        if (motionHistory.length >= 18) {
+        if (motionHistory.length >= 15) {
             let minX = 1, maxX = 0, minY = 1, maxY = 0;
             motionHistory.forEach(pt => {
                 if (pt.x < minX) minX = pt.x;
@@ -463,7 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const dxSpan = maxX - minX;
             const dySpan = maxY - minY;
             const ratio = dxSpan / (dySpan || 1);
-            if (dxSpan > 0.07 && dySpan > 0.07 && ratio > 0.7 && ratio < 1.4 && directionChangesX >= 2 && directionChangesY >= 2) {
+            if (dxSpan > 0.03 && dySpan > 0.03 && ratio > 0.5 && ratio < 2.0 && directionChangesX >= 1 && directionChangesY >= 1) {
                 return {
                     name: "Please",
                     emoji: "🙏",
@@ -473,6 +477,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         return null;
+    }
+
+    // Helper to check if hand is actively moving (for suppressing static gesture false-positives)
+    function isHandMoving() {
+        if (motionHistory.length < 5) return false;
+        let movement = 0;
+        for (let i = motionHistory.length - 5; i < motionHistory.length - 1; i++) {
+            movement += getDistance(motionHistory[i], motionHistory[i + 1]);
+        }
+        return movement > 0.025;
     }
 
     // --- MediaPipe Callback & Theme-Driven Draw ---
@@ -530,8 +544,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 gesture = detectMotionGesture(primaryHand);
                 
                 if (!gesture) {
-                    const preset = presetSelect ? presetSelect.value : "asl";
-                    gesture = predictGesture(primaryHand, customGestures, preset);
+                    if (isHandMoving()) {
+                        gesture = {
+                            name: "Scanning...",
+                            emoji: "✋",
+                            description: "Hold hand steady to trigger a sign."
+                        };
+                    } else {
+                        const preset = presetSelect ? presetSelect.value : "asl";
+                        gesture = predictGesture(primaryHand, customGestures, preset);
+                    }
                 }
             }
             
