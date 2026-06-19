@@ -75,11 +75,11 @@ function predictGesture(landmarks, customGestures = [], presetName = "asl") {
     const palmSize = getDistance(wrist, middleMCP);
     if (palmSize === 0) return { name: "Analyzing...", emoji: "🤔", description: "Hold hand steady." };
 
-    // Determine finger extensions relative to wrist/MCP distance
-    const isIndexExtended = getDistance(indexTip, wrist) > getDistance(indexPIP, wrist);
-    const isMiddleExtended = getDistance(middleTip, wrist) > getDistance(middlePIP, wrist);
-    const isRingExtended = getDistance(ringTip, wrist) > getDistance(ringPIP, wrist);
-    const isPinkyExtended = getDistance(pinkyTip, wrist) > getDistance(pinkyPIP, wrist);
+    // Determine finger extensions relative to knuckle (MCP) distance (highly stable and wrist-bending invariant)
+    const isIndexExtended = getDistance(indexTip, indexMCP) > (palmSize * 0.55);
+    const isMiddleExtended = getDistance(middleTip, middleMCP) > (palmSize * 0.55);
+    const isRingExtended = getDistance(ringTip, landmarks[13]) > (palmSize * 0.55);
+    const isPinkyExtended = getDistance(pinkyTip, landmarks[17]) > (palmSize * 0.50);
 
     // Thumb is extended if it is pushed away from the side of the palm (index MCP)
     const thumbDistanceToIndexMCP = getDistance(thumbTip, indexMCP);

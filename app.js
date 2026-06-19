@@ -395,7 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
             motionHistory.shift();
         }
         
-        if (motionHistory.length < 10) return null;
+        if (motionHistory.length < 15) return null;
         
         let directionChangesX = 0;
         let prevDeltaX = 0;
@@ -410,17 +410,17 @@ document.addEventListener("DOMContentLoaded", () => {
             totalYMovement += Math.abs(dy);
             
             if (prevDeltaX !== 0) {
-                if ((dx > 0.002 && prevDeltaX < -0.002) || (dx < -0.002 && prevDeltaX > 0.002)) {
+                if ((dx > 0.003 && prevDeltaX < -0.003) || (dx < -0.003 && prevDeltaX > 0.003)) {
                     directionChangesX++;
                     prevDeltaX = dx;
                 }
-            } else if (Math.abs(dx) > 0.002) {
+            } else if (Math.abs(dx) > 0.003) {
                 prevDeltaX = dx;
             }
         }
         
         // 1. Waving horizontal movement check for "Hello"
-        if (directionChangesX >= 3 && totalXMovement > totalYMovement * 1.5 && totalXMovement > 0.1) {
+        if (directionChangesX >= 4 && totalXMovement > totalYMovement * 1.8 && totalXMovement > 0.25) {
             return {
                 name: "Hello",
                 emoji: "👋",
@@ -434,16 +434,16 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let i = 1; i < motionHistory.length; i++) {
             const dy = motionHistory[i].y - motionHistory[i - 1].y;
             if (prevDeltaY !== 0) {
-                if ((dy > 0.002 && prevDeltaY < -0.002) || (dy < -0.002 && prevDeltaY > 0.002)) {
+                if ((dy > 0.003 && prevDeltaY < -0.003) || (dy < -0.003 && prevDeltaY > 0.003)) {
                     directionChangesY++;
                     prevDeltaY = dy;
                 }
-            } else if (Math.abs(dy) > 0.002) {
+            } else if (Math.abs(dy) > 0.003) {
                 prevDeltaY = dy;
             }
         }
         
-        if (directionChangesY >= 2 && totalYMovement > totalXMovement * 1.5 && totalYMovement > 0.1) {
+        if (directionChangesY >= 3 && totalYMovement > totalXMovement * 1.8 && totalYMovement > 0.25) {
             return {
                 name: "Yes",
                 emoji: "✊",
@@ -452,7 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         // 3. Circular rubbing movement check for "Please"
-        if (motionHistory.length >= 15) {
+        if (motionHistory.length >= 18) {
             let minX = 1, maxX = 0, minY = 1, maxY = 0;
             motionHistory.forEach(pt => {
                 if (pt.x < minX) minX = pt.x;
@@ -463,7 +463,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const dxSpan = maxX - minX;
             const dySpan = maxY - minY;
             const ratio = dxSpan / (dySpan || 1);
-            if (dxSpan > 0.04 && dySpan > 0.04 && ratio > 0.6 && ratio < 1.6 && directionChangesX >= 1 && directionChangesY >= 1) {
+            if (dxSpan > 0.07 && dySpan > 0.07 && ratio > 0.7 && ratio < 1.4 && directionChangesX >= 2 && directionChangesY >= 2) {
                 return {
                     name: "Please",
                     emoji: "🙏",
@@ -545,6 +545,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function handleStableGesture(gesture) {
+        // V5: Bypass debounce or use low threshold for dynamic motion/two-hand gestures to ensure responsive detection
+        const isDynamicOrTwoHand = ["Hello", "Yes", "Please", "House / Roof", "Book / Read", "Friend"].includes(gesture.name);
+        const targetThreshold = isDynamicOrTwoHand ? 2 : 12; // 12 frames (~400ms) for static, 2 frames for dynamic
+
         if (gesture.name === lastPredictionName) {
             predictionMatchCount++;
         } else {
@@ -552,7 +556,11 @@ document.addEventListener("DOMContentLoaded", () => {
             predictionMatchCount = 0;
         }
 
-        if (predictionMatchCount >= CONFIRM_THRESHOLD || gesture.name.includes("Scanning") || gesture.name.includes("No Hand") || gesture.name.includes("Camera Off")) {
+        if (predictionMatchCount >= targetThreshold || 
+            gesture.name.includes("Scanning") || 
+            gesture.name.includes("No Hand") || 
+            gesture.name.includes("Camera Off")) {
+            
             currentGesture = gesture;
             updateGestureUI(currentGesture);
             
