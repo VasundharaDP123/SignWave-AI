@@ -1,8 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
 /* ==========================================================================
    Accessible Sign AI - Stylesheet
    ========================================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
     /* Color Palette */
@@ -49,21 +50,6 @@
     --text-muted: #dddddd;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    background-color: transparent;
-    color: var(--text-primary);
-    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-    line-height: 1.5;
-}
-
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
     width: 8px;
@@ -80,13 +66,13 @@ body {
     background: var(--accent);
 }
 
-/* ==========================================================================
-   Typography & Base Styles
-   ========================================================================== */
-
-h1, h2, h3, h4 {
-    font-weight: 600;
-    letter-spacing: -0.02em;
+body {
+    background-color: transparent;
+    color: var(--text-primary);
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.5;
 }
 
 .gradient-text {
@@ -94,10 +80,6 @@ h1, h2, h3, h4 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-
-/* ==========================================================================
-   Layout Structures
-   ========================================================================== */
 
 .app-wrapper {
     display: flex;
@@ -109,7 +91,6 @@ h1, h2, h3, h4 {
     gap: 20px;
 }
 
-/* Header */
 header {
     display: flex;
     justify-content: space-between;
@@ -146,7 +127,6 @@ header {
     text-transform: uppercase;
 }
 
-/* Panels Grid Layout */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 320px 1fr 360px;
@@ -160,7 +140,6 @@ header {
     }
 }
 
-/* Glassmorphism Panel base */
 .glass-panel {
     background: var(--bg-surface);
     backdrop-filter: blur(12px);
@@ -193,10 +172,6 @@ header {
     align-items: center;
     gap: 8px;
 }
-
-/* ==========================================================================
-   Left Panel: Navigation / Reference Guide
-   ========================================================================== */
 
 .guide-list {
     display: flex;
@@ -256,10 +231,6 @@ header {
     color: var(--text-secondary);
 }
 
-/* ==========================================================================
-   Middle Panel: Webcam, Canvas & Output
-   ========================================================================== */
-
 .workspace-column {
     display: flex;
     flex-direction: column;
@@ -282,7 +253,7 @@ header {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scaleX(-1); /* Mirror camera feed */
+    transform: scaleX(-1);
 }
 
 #output-canvas {
@@ -291,11 +262,10 @@ header {
     left: 0;
     width: 100%;
     height: 100%;
-    transform: scaleX(-1); /* Mirror overlay canvas */
+    transform: scaleX(-1);
     pointer-events: none;
 }
 
-/* Camera Overlay Indicators */
 .camera-overlay-ui {
     position: absolute;
     top: 16px;
@@ -340,7 +310,6 @@ header {
     box-shadow: 0 0 8px var(--danger);
 }
 
-/* Detection Preview Card */
 .detection-card {
     display: flex;
     gap: 20px;
@@ -384,12 +353,11 @@ header {
     font-weight: 700;
 }
 
-.detected-meta {
+.detected-desc {
     font-size: 0.85rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
-/* Sentence Builder */
 .sentence-builder-panel {
     display: flex;
     flex-direction: column;
@@ -419,14 +387,6 @@ header {
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 12px var(--accent-glow);
 }
 
-.sentence-display-placeholder {
-    color: var(--text-muted);
-    font-style: italic;
-    align-self: center;
-    width: 100%;
-    text-align: center;
-}
-
 .word-bubble {
     background: var(--accent-gradient);
     padding: 4px 12px;
@@ -437,7 +397,6 @@ header {
     animation: popIn 0.3s ease-out;
 }
 
-/* Control Buttons row */
 .controls-row {
     display: flex;
     gap: 12px;
@@ -460,7 +419,7 @@ button {
     transition: var(--transition);
 }
 
-button:hover {
+button:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--text-secondary);
 }
@@ -471,7 +430,7 @@ button.primary {
     box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
 }
 
-button.primary:hover {
+button.primary:hover:not(:disabled) {
     box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
     transform: translateY(-1px);
 }
@@ -482,7 +441,7 @@ button.danger {
     border-color: rgba(239, 68, 68, 0.3);
 }
 
-button.danger:hover {
+button.danger:hover:not(:disabled) {
     background: rgba(239, 68, 68, 0.3);
     border-color: var(--danger);
 }
@@ -492,10 +451,6 @@ button:disabled {
     cursor: not-allowed;
     pointer-events: none;
 }
-
-/* ==========================================================================
-   Right Panel: Speech Translation & Accessibility
-   ========================================================================== */
 
 .chat-panel {
     display: flex;
@@ -543,7 +498,6 @@ button:disabled {
     font-weight: 600;
 }
 
-/* Microphone Area */
 .mic-control-card {
     background: rgba(0, 0, 0, 0.15);
     border: 1px solid var(--border-color);
@@ -593,7 +547,6 @@ button:disabled {
     color: var(--text-muted);
 }
 
-/* Accessibility Control Panel */
 .accessibility-settings {
     display: flex;
     flex-direction: column;
@@ -638,7 +591,6 @@ button:disabled {
     background: rgba(255, 255, 255, 0.08);
 }
 
-/* Toggle Switch */
 .switch {
     position: relative;
     display: inline-block;
@@ -685,10 +637,6 @@ input:checked + .slider:before {
     transform: translateX(20px);
 }
 
-/* ==========================================================================
-   Animations
-   ========================================================================== */
-
 @keyframes pulse {
     0% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.2); opacity: 0.6; }
@@ -728,7 +676,6 @@ input:checked + .slider:before {
     100% { opacity: 1; transform: translateY(0); }
 }
 
-/* Custom Dictionary Styles */
 .custom-dict-item {
     display: flex;
     align-items: center;
@@ -764,7 +711,6 @@ input:checked + .slider:before {
     border-color: var(--danger) !important;
 }
 
-/* Academy Success HUD feedback */
 @keyframes successFlash {
     0% { background-color: rgba(16, 185, 129, 0.3); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
     100% { background-color: rgba(0, 0, 0, 0.25); box-shadow: none; }
@@ -774,9 +720,6 @@ input:checked + .slider:before {
     animation: successFlash 1.0s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-/* ==========================================================================
-   V3: Animated Gradient Mesh Background
-   ========================================================================== */
 .mesh-bg-gradient {
     position: fixed;
     top: 0;
@@ -839,9 +782,6 @@ input:checked + .slider:before {
     100% { transform: translate(90px, -90px) rotate(360deg); }
 }
 
-/* ==========================================================================
-   V3: Input Focus & Quick Phrase Animations
-   ========================================================================== */
 #dictionary-search:focus, #custom-gesture-name:focus {
     border-color: var(--accent);
     background: rgba(0, 0, 0, 0.35) !important;
@@ -868,13 +808,11 @@ input:checked + .slider:before {
     transform: translateY(0);
 }
 
-/* Exporter button hover */
 #btn-export-chat:hover {
     background: rgba(255, 255, 255, 0.1) !important;
     border-color: var(--text-secondary);
 }
 
-/* Pulse listening canvas wave */
 #voice-wave-canvas {
     border-radius: var(--radius-sm);
     background: rgba(0, 0, 0, 0.2);
@@ -882,7 +820,6 @@ input:checked + .slider:before {
     box-shadow: 0 0 8px rgba(6, 182, 212, 0.05);
 }
 
-/* Tab Navigation buttons */
 .tab-btn {
     background: transparent;
     border: 1px solid var(--border-color);
@@ -913,6 +850,3 @@ input:checked + .slider:before {
     animation: spin 1.0s linear infinite;
     display: inline-block;
 }
-
-
-
