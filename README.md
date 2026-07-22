@@ -61,6 +61,7 @@ Featuring a sleek, modern **Oceanic Wave branding design** with glowing cyan/tea
 *   **Hands-Free Voice Navigation**: Execute system commands through voice recognition to modify sentences, zoom text, or request speech playback.
 *   **Flexible Layout**: Responsive dashboard container that fits standard laptop resolutions without clipping components, maintaining high visual hierarchy and scrollable panels.
 *   **Local Session Exporter**: Download interactive translations and chat histories as a clean text file (`signwave_chat_log.txt`) instantly.
+*   **Master Premium Additions**: SVG Hand Blueprint Visualizers, Bi-directional Speech-to-Sign/Search Tutorials, Persisted Translation History logs with Flask server sync, Time-Attack Quiz Challenges, and interactive progress scoring line charts.
 
 ---
 
