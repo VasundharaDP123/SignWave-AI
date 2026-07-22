@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { Landmark, GestureDefinition } from './services/gestures';
+import type { Landmark, GestureDefinition, FingerStates } from './services/gestures';
 import {
   ASL_DICTIONARY,
   ISL_DICTIONARY,
@@ -38,7 +38,135 @@ interface Stats {
   roundsPlayed: number;
   customCount: number;
   lastActiveDate: string;
+  scoreHistory?: number[];
+  highScoreTimeAttack?: number;
 }
+
+// --- SVG Hand Blueprint Visualizer Component ---
+const HandBlueprint: React.FC<{ states?: FingerStates }> = ({ states }) => {
+  const s = states || {
+    thumb: false,
+    index: false,
+    middle: false,
+    ring: false,
+    pinky: false
+  };
+
+  const thumbX = s.thumb ? 30 : 55;
+  const thumbY = s.thumb ? 95 : 125;
+  const indexY = s.index ? 40 : 90;
+  const middleY = s.middle ? 30 : 85;
+  const ringY = s.ring ? 40 : 90;
+  const pinkyY = s.pinky ? 55 : 100;
+
+  return (
+    <svg width="100%" height="150" viewBox="0 0 200 200" className="mx-auto drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">
+      <defs>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* Palm Connection */}
+      <path
+        d="M 100 180 L 60 140 L 75 100 L 100 95 L 125 100 L 145 110 L 100 180"
+        fill="rgba(6, 182, 212, 0.08)"
+        stroke="var(--neon-cyan, #06b6d4)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter="url(#glow)"
+      />
+      <line x1="100" y1="180" x2="100" y2="95" stroke="rgba(6,182,212,0.3)" strokeWidth="1.5" />
+      <line x1="100" y1="180" x2="75" y2="100" stroke="rgba(6,182,212,0.3)" strokeWidth="1.5" />
+      <line x1="100" y1="180" x2="125" y2="100" stroke="rgba(6,182,212,0.3)" strokeWidth="1.5" />
+
+      {/* Fingers */}
+      <path d={`M 60 140 L 45 120 L ${thumbX} ${thumbY}`} fill="none" stroke={s.thumb ? "#22d3ee" : "#4b5563"} strokeWidth="4" strokeLinecap="round" filter="url(#glow)" />
+      <path d={`M 75 100 L 75 70 L 75 ${indexY}`} fill="none" stroke={s.index ? "#22d3ee" : "#4b5563"} strokeWidth="4" strokeLinecap="round" filter="url(#glow)" />
+      <path d={`M 100 95 L 100 65 L 100 ${middleY}`} fill="none" stroke={s.middle ? "#22d3ee" : "#4b5563"} strokeWidth="4" strokeLinecap="round" filter="url(#glow)" />
+      <path d={`M 125 100 L 125 70 L 125 ${ringY}`} fill="none" stroke={s.ring ? "#22d3ee" : "#4b5563"} strokeWidth="4" strokeLinecap="round" filter="url(#glow)" />
+      <path d={`M 145 110 L 145 80 L 145 ${pinkyY}`} fill="none" stroke={s.pinky ? "#22d3ee" : "#4b5563"} strokeWidth="4" strokeLinecap="round" filter="url(#glow)" />
+
+      {/* Knuckles */}
+      <circle cx="100" cy="180" r="5" fill="#06b6d4" />
+      <circle cx="60" cy="140" r="4" fill="#06b6d4" />
+      <circle cx="75" cy="100" r="4" fill="#06b6d4" />
+      <circle cx="100" cy="95" r="4" fill="#06b6d4" />
+      <circle cx="125" cy="100" r="4" fill="#06b6d4" />
+      <circle cx="145" cy="110" r="4" fill="#06b6d4" />
+      
+      {/* Tips */}
+      <circle cx={thumbX} cy={thumbY} r="5" fill={s.thumb ? "#22d3ee" : "#374151"} />
+      <circle cx="75" cy={indexY} r="5" fill={s.index ? "#22d3ee" : "#374151"} />
+      <circle cx="100" cy={middleY} r="5" fill={s.middle ? "#22d3ee" : "#374151"} />
+      <circle cx="125" cy={ringY} r="5" fill={s.ring ? "#22d3ee" : "#374151"} />
+      <circle cx="145" cy={pinkyY} r="5" fill={s.pinky ? "#22d3ee" : "#374151"} />
+    </svg>
+  );
+};
+
+// --- SVG Chart for Stats Component ---
+const ProgressChart: React.FC<{ history?: number[] }> = ({ history }) => {
+  const points = history && history.length > 0 ? history : [0];
+  const width = 300;
+  const height = 90;
+  const padding = 12;
+
+  const maxVal = Math.max(...points, 5);
+  const minVal = 0;
+
+  const xStep = (width - padding * 2) / Math.max(points.length - 1, 1);
+  const yScale = (height - padding * 2) / (maxVal - minVal);
+
+  const svgPoints = points.map((val, idx) => {
+    const x = padding + idx * xStep;
+    const y = height - padding - val * yScale;
+    return { x, y, val };
+  });
+
+  const pathD = svgPoints.reduce((acc, pt, idx) => {
+    return idx === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
+  }, "");
+
+  const areaD = svgPoints.length > 0 
+    ? `${pathD} L ${svgPoints[svgPoints.length - 1].x} ${height - padding} L ${svgPoints[0].x} ${height - padding} Z`
+    : "";
+
+  return (
+    <div className="bg-black/25 p-3 rounded-[var(--radius-sm)] border border-[var(--border-color)] mt-1.5 flex flex-col gap-1 text-left">
+      <div className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-bold mb-1">Academy Score History</div>
+      <svg width="100%" height="70" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
+        <defs>
+          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+
+        <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="rgba(255,255,255,0.03)" strokeWidth="1" strokeDasharray="3,3" />
+        <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="rgba(255,255,255,0.03)" strokeWidth="1" strokeDasharray="3,3" />
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+
+        {areaD && <path d={areaD} fill="url(#chartGrad)" />}
+        {pathD && <path d={pathD} fill="none" stroke="#22d3ee" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+
+        {svgPoints.map((pt, idx) => (
+          <g key={idx}>
+            <circle cx={pt.x} cy={pt.y} r="3.5" fill="#030712" stroke="#06b6d4" strokeWidth="2" />
+            {(idx === 0 || idx === points.length - 1 || points.length <= 6) && (
+              <text x={pt.x} y={pt.y - 6} fill="#9ca3af" fontSize="8px" textAnchor="middle" className="font-semibold">{pt.val}</text>
+            )}
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+};
 
 export const App: React.FC = () => {
   // --- UI Tabs and System States ---
@@ -88,18 +216,44 @@ export const App: React.FC = () => {
   const [academyActive, setAcademyActive] = useState<boolean>(false);
   const [academyScore, setAcademyScore] = useState<number>(0);
   const [academyRound, setAcademyRound] = useState<number>(0);
-  const [academyTargetSign, setAcademyTargetSign] = useState<{ name: string; emoji: string } | null>(null);
+  const [academyTargetSign, setAcademyTargetSign] = useState<{ name: string; emoji: string; states?: FingerStates } | null>(null);
   const [academyHoldProgress, setAcademyHoldProgress] = useState<number>(0);
   const [academyTimer, setAcademyTimer] = useState<number>(15);
 
+  // --- Time-Attack & History States ---
+  const [academyMode, setAcademyMode] = useState<"standard" | "timeAttack">("standard");
+  const [timeAttackCountdown, setTimeAttackCountdown] = useState<number>(0);
+  const [translationHistory, setTranslationHistory] = useState<string[]>([]);
+
   // --- Local DB / Server Sync Status ---
   const [customGestures, setCustomGestures] = useState<GestureDefinition[]>([]);
-  const [stats, setStats] = useState<Stats>({
-    streak: 1,
-    academyScore: 0,
-    roundsPlayed: 0,
-    customCount: 0,
-    lastActiveDate: ""
+  const [stats, setStats] = useState<Stats>(() => {
+    if (typeof window !== 'undefined') {
+      const local = localStorage.getItem("signwave_stats");
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          return {
+            streak: parsed.streak || 1,
+            academyScore: parsed.academyScore || 0,
+            roundsPlayed: parsed.roundsPlayed || 0,
+            customCount: parsed.customCount || 0,
+            lastActiveDate: parsed.lastActiveDate || "",
+            scoreHistory: parsed.scoreHistory || [0],
+            highScoreTimeAttack: parsed.highScoreTimeAttack || 0
+          };
+        } catch (e) {}
+      }
+    }
+    return {
+      streak: 1,
+      academyScore: 0,
+      roundsPlayed: 0,
+      customCount: 0,
+      lastActiveDate: "",
+      scoreHistory: [0],
+      highScoreTimeAttack: 0
+    };
   });
   const [syncStatus, setSyncStatus] = useState<'offline' | 'syncing' | 'synced'>('offline');
   const [systemVoices, setSystemVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -118,6 +272,7 @@ export const App: React.FC = () => {
   const predictionMatchCountRef = useRef<number>(0);
   const academyIntervalRef = useRef<any>(null);
   const roundTimerIntervalRef = useRef<any>(null);
+  const timeAttackTimerRef = useRef<any>(null);
 
   // Keep state refs in sync for asynchronous handlers
   const themeRef = useRef(theme);
@@ -140,6 +295,15 @@ export const App: React.FC = () => {
 
   const cameraActiveRef = useRef(cameraActive);
   useEffect(() => { cameraActiveRef.current = cameraActive; }, [cameraActive]);
+
+  const academyModeRef = useRef(academyMode);
+  useEffect(() => { academyModeRef.current = academyMode; }, [academyMode]);
+
+  const academyRoundRef = useRef(academyRound);
+  useEffect(() => { academyRoundRef.current = academyRound; }, [academyRound]);
+
+  const translationHistoryRef = useRef(translationHistory);
+  useEffect(() => { translationHistoryRef.current = translationHistory; }, [translationHistory]);
 
   // --- Audio Tones Synthesizer ---
   const playBeep = (frequency: number, duration: number, type: OscillatorType = "sine") => {
@@ -195,16 +359,44 @@ export const App: React.FC = () => {
       });
     }
 
-    const mergedStats = {
+    const mergedStats: Stats = {
       streak: Math.max(localS?.streak || 1, serverData.stats?.streak || 1),
       academyScore: Math.max(localS?.academyScore || 0, serverData.stats?.academyScore || 0),
       roundsPlayed: Math.max(localS?.roundsPlayed || 0, serverData.stats?.roundsPlayed || 0),
       customCount: 0,
-      lastActiveDate: localS?.lastActiveDate || serverData.stats?.lastActiveDate || ""
+      lastActiveDate: localS?.lastActiveDate || serverData.stats?.lastActiveDate || "",
+      scoreHistory: localS?.scoreHistory && localS.scoreHistory.length > (serverData.stats?.scoreHistory?.length || 0)
+        ? localS.scoreHistory 
+        : (serverData.stats?.scoreHistory || [0]),
+      highScoreTimeAttack: Math.max(localS?.highScoreTimeAttack || 0, serverData.stats?.highScoreTimeAttack || 0)
     };
     mergedStats.customCount = mergedGestures.length;
 
     return { gestures: mergedGestures, stats: mergedStats };
+  };
+
+  // Generic DB sync helper
+  const syncDatabase = async (currentCustom = customGestures, currentStats = stats, currentHistory = translationHistory) => {
+    setSyncStatus('syncing');
+    try {
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gestures: currentCustom,
+          stats: currentStats,
+          translationHistory: currentHistory
+        })
+      });
+      if (response.ok) {
+        setSyncStatus('synced');
+      } else {
+        throw new Error("POST write failed");
+      }
+    } catch (e) {
+      console.warn("Auto sync failed:", e);
+      setSyncStatus('offline');
+    }
   };
 
   useEffect(() => {
@@ -213,7 +405,7 @@ export const App: React.FC = () => {
     const localStatsStr = localStorage.getItem("signwave_stats");
 
     let localG: GestureDefinition[] = [];
-    let localS: Stats = { streak: 1, academyScore: 0, roundsPlayed: 0, customCount: 0, lastActiveDate: "" };
+    let localS: Stats = { streak: 1, academyScore: 0, roundsPlayed: 0, customCount: 0, lastActiveDate: "", scoreHistory: [0], highScoreTimeAttack: 0 };
 
     if (localGesturesStr) {
       try { localG = JSON.parse(localGesturesStr); } catch (e) { }
@@ -250,20 +442,29 @@ export const App: React.FC = () => {
         return res.json();
       })
       .then(serverData => {
-        if (serverData && (serverData.gestures || serverData.stats)) {
-          const merged = mergeData(localG, localS, serverData);
-          setCustomGestures(merged.gestures);
-          setStats(merged.stats);
+        if (serverData) {
+          if (serverData.gestures || serverData.stats) {
+            const merged = mergeData(localG, localS, serverData);
+            setCustomGestures(merged.gestures);
+            setStats(merged.stats);
+            localStorage.setItem("signwave_custom_gestures", JSON.stringify(merged.gestures));
+            localStorage.setItem("signwave_stats", JSON.stringify(merged.stats));
+            
+            // Post merged database back to server
+            fetch('/api/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                gestures: merged.gestures,
+                stats: merged.stats,
+                translationHistory: serverData.translationHistory || []
+              })
+            }).catch(e => console.warn("POST merge failure:", e));
+          }
+          if (serverData.translationHistory && Array.isArray(serverData.translationHistory)) {
+            setTranslationHistory(serverData.translationHistory);
+          }
           setSyncStatus("synced");
-          localStorage.setItem("signwave_custom_gestures", JSON.stringify(merged.gestures));
-          localStorage.setItem("signwave_stats", JSON.stringify(merged.stats));
-
-          // Post merged database back to server
-          fetch('/api/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(merged)
-          }).catch(e => console.warn("POST merge failure:", e));
         }
       })
       .catch(err => {
@@ -281,13 +482,10 @@ export const App: React.FC = () => {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
 
-    // Initialize MediaPipe hands script
+    // Initialize and download MediaPipe hands model in the background immediately
     setTimeout(() => {
-      const HandsClass = (window as any).Hands;
-      if (HandsClass) {
-        setSystemStatus("SignWave AI Ready");
-      }
-    }, 800);
+      initMediaPipe();
+    }, 500);
 
     return () => {
       stopCamera();
@@ -360,7 +558,7 @@ export const App: React.FC = () => {
       const response = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gestures: customGestures, stats })
+        body: JSON.stringify({ gestures: customGestures, stats, translationHistory })
       });
       if (response.ok) {
         setSyncStatus("synced");
@@ -377,22 +575,6 @@ export const App: React.FC = () => {
   };
 
   // --- MediaPipe Hands Callbacks ---
-  const isHandMoving = () => {
-    const history = motionHistoryRef.current;
-    if (history.length < 5) return false;
-    let minX = 1, maxX = 0;
-    let minY = 1, maxY = 0;
-    for (let i = history.length - 5; i < history.length; i++) {
-      const pt = history[i];
-      if (pt.x < minX) minX = pt.x;
-      if (pt.x > maxX) maxX = pt.x;
-      if (pt.y < minY) minY = pt.y;
-      if (pt.y > maxY) maxY = pt.y;
-    }
-    const xSpan = maxX - minX;
-    const ySpan = maxY - minY;
-    return xSpan > 0.05 || ySpan > 0.05;
-  };
 
   const detectMotionGesture = (landmarks: Landmark[]): GestureDefinition | null => {
     if (!landmarks || landmarks.length < 21) return null;
@@ -435,11 +617,11 @@ export const App: React.FC = () => {
       }
     }
 
-    if (directionChangesX >= 3 && xSpan > ySpan * 1.3 && xSpan > 0.12) {
+    if (directionChangesX >= 2 && xSpan > ySpan * 1.15 && xSpan > 0.08) {
       return {
-        name: "Hello",
+        name: presetRef.current === "isl" ? "Namaste / Stop" : "Hello / Stop",
         emoji: "👋",
-        description: "Hand waved side-to-side dynamically."
+        description: presetRef.current === "isl" ? "Flat open palm greeting or halt" : "All fingers extended straight"
       };
     }
 
@@ -457,7 +639,7 @@ export const App: React.FC = () => {
       }
     }
 
-    if (directionChangesY >= 3 && ySpan > xSpan * 1.3 && ySpan > 0.12) {
+    if (directionChangesY >= 2 && ySpan > xSpan * 1.15 && ySpan > 0.08) { // Increased from 0.12
       return {
         name: "Yes",
         emoji: "✊",
@@ -504,6 +686,24 @@ export const App: React.FC = () => {
     const wristsDist = getDistance(wrist1, wrist2);
     const thumbsDist = getDistance(thumbTip1, thumbTip2);
 
+    // Namaste / Please prayer gesture check
+    if (pinkyTip1 && pinkyTip2) {
+      const pinkyTipsDist = getDistance(pinkyTip1, pinkyTip2);
+      const middleTipsDist = getDistance(hand1[12], hand2[12]);
+      if (wristsDist < avgPalm * 1.2 && indexTipsDist < avgPalm * 0.8 && pinkyTipsDist < avgPalm * 0.8 && middleTipsDist < avgPalm * 0.8) {
+        const isHand1Open = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1) && getDistance(hand1[12], wrist1) > getDistance(hand1[10], wrist1);
+        const isHand2Open = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2) && getDistance(hand2[12], wrist2) > getDistance(hand2[10], wrist2);
+        
+        if (isHand1Open && isHand2Open) {
+          return {
+            name: presetRef.current === "isl" ? "Namaste / Stop" : "Please",
+            emoji: presetRef.current === "isl" ? "👋" : "🙏",
+            description: "Prayer hands pressed together representing respect or please."
+          };
+        }
+      }
+    }
+
     if (indexTipsDist < avgPalm * 0.4 && wristsDist > avgPalm * 1.8 && thumbsDist < avgPalm * 0.9) {
       return {
         name: "House / Roof",
@@ -512,34 +712,21 @@ export const App: React.FC = () => {
       };
     }
 
-    if (wristsDist < avgPalm * 0.6 && pinkyTip1 && pinkyTip2) {
+    if (wristsDist < avgPalm * 1.5 && pinkyTip1 && pinkyTip2) {
       const pinkyDist = getDistance(pinkyTip1, pinkyTip2);
       const isHand1Open = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1);
       const isHand2Open = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2);
 
-      if (pinkyDist < avgPalm * 0.6 && isHand1Open && isHand2Open) {
+      if (pinkyDist < avgPalm * 0.8 && isHand1Open && isHand2Open) {
         return {
           name: "Book / Read",
           emoji: "📖",
-          description: "Flat palms placed side-by-side like an open book."
+          description: "Palms placed side-by-side like an open book."
         };
       }
     }
 
-    if (indexTipsDist < avgPalm * 0.5) {
-      const isIndex1Extended = getDistance(indexTip1, wrist1) > getDistance(hand1[6], wrist1);
-      const isIndex2Extended = getDistance(indexTip2, wrist2) > getDistance(hand2[6], wrist2);
-      const isOthersFolded1 = getDistance(hand1[12], wrist1) < getDistance(hand1[10], wrist1);
-      const isOthersFolded2 = getDistance(hand2[12], wrist2) < getDistance(hand2[10], wrist2);
 
-      if (isIndex1Extended && isIndex2Extended && isOthersFolded1 && isOthersFolded2) {
-        return {
-          name: "Friend",
-          emoji: "🤝",
-          description: "Hooked or touching index fingers representing association."
-        };
-      }
-    }
 
     return null;
   };
@@ -603,15 +790,7 @@ export const App: React.FC = () => {
         gesture = detectMotionGesture(primaryHand);
 
         if (!gesture) {
-          if (isHandMoving()) {
-            gesture = {
-              name: "Scanning...",
-              emoji: "✋",
-              description: "Hold hand steady to trigger a sign."
-            };
-          } else {
-            gesture = predictGesture(primaryHand, customGesturesRef.current, presetRef.current);
-          }
+          gesture = predictGesture(primaryHand, customGesturesRef.current, presetRef.current);
         }
       }
 
@@ -629,8 +808,7 @@ export const App: React.FC = () => {
   };
 
   const handleStableGesture = (gesture: GestureDefinition) => {
-    const isDynamicOrTwoHand = ["Hello", "Yes", "Please", "House / Roof", "Book / Read", "Friend"].includes(gesture.name);
-    const targetThreshold = isDynamicOrTwoHand ? 4 : 6;
+    const targetThreshold = 3;
 
     if (gesture.name === lastPredictionNameRef.current) {
       predictionMatchCountRef.current++;
@@ -674,8 +852,8 @@ export const App: React.FC = () => {
       hands.setOptions({
         maxNumHands: 2,
         modelComplexity: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.7
+        minDetectionConfidence: 0.55,
+        minTrackingConfidence: 0.55
       });
 
       hands.onResults(onHandResults);
@@ -736,16 +914,31 @@ export const App: React.FC = () => {
   };
 
   const startCaptureLoop = () => {
-    const captureFrame = async () => {
-      if (!cameraActiveRef.current || !streamRef.current) return;
-      try {
-        if (videoRef.current && mediaPipeHandsRef.current) {
-          await mediaPipeHandsRef.current.send({ image: videoRef.current });
+    let lastTime = 0;
+    let processing = false;
+
+    const captureFrame = async (timestamp: number) => {
+      // Keep the loop alive as long as the camera stream is running
+      if (!streamRef.current) return;
+
+      if (cameraActiveRef.current) {
+        const elapsed = timestamp - lastTime;
+        if (elapsed >= 33 && !processing) {
+          lastTime = timestamp;
+          processing = true;
+          try {
+            if (videoRef.current && mediaPipeHandsRef.current) {
+              await mediaPipeHandsRef.current.send({ image: videoRef.current });
+            }
+          } catch (err) {
+            console.error("Frame skip:", err);
+          } finally {
+            processing = false;
+          }
         }
-      } catch (err) {
-        console.error("Frame skip:", err);
       }
-      if (cameraActiveRef.current && streamRef.current) {
+
+      if (streamRef.current) {
         requestAnimationFrame(captureFrame);
       }
     };
@@ -753,25 +946,113 @@ export const App: React.FC = () => {
   };
 
   // --- Academy practice mode ---
-  const startAcademy = () => {
+  // --- Academy practice mode ---
+  const startTimeAttackTimer = () => {
+    if (timeAttackTimerRef.current) clearInterval(timeAttackTimerRef.current);
+    let secondsLeft = 60;
+    setTimeAttackCountdown(secondsLeft);
+    timeAttackTimerRef.current = setInterval(() => {
+      secondsLeft--;
+      setTimeAttackCountdown(secondsLeft);
+      if (secondsLeft <= 0) {
+        clearInterval(timeAttackTimerRef.current);
+        endTimeAttack();
+      }
+    }, 1000);
+  };
+
+  const endTimeAttack = () => {
+    playVictoryFanfare();
+    setAcademyActive(false);
+    if (academyIntervalRef.current) clearInterval(academyIntervalRef.current);
+    if (timeAttackTimerRef.current) clearInterval(timeAttackTimerRef.current);
+
+    setAcademyScore(currentScore => {
+      const isNewPB = currentScore > (stats.highScoreTimeAttack || 0);
+      appendChatMessage("SignWave Academy", `🎉 Time's up! You matched ${currentScore} gestures in 60s!${isNewPB ? " New Personal Best! 🔥" : ""}`, "signer");
+
+      const updatedStats = {
+        ...stats,
+        roundsPlayed: stats.roundsPlayed + 1,
+        academyScore: stats.academyScore + currentScore,
+        highScoreTimeAttack: Math.max(stats.highScoreTimeAttack || 0, currentScore),
+        scoreHistory: [...(stats.scoreHistory || [0]), currentScore]
+      };
+      setStats(updatedStats);
+      localStorage.setItem("signwave_stats", JSON.stringify(updatedStats));
+      syncDatabase(customGestures, updatedStats, translationHistoryRef.current);
+      return currentScore;
+    });
+  };
+
+  const nextTimeAttackRound = () => {
+    const standardList = presetRef.current === "isl" ? [
+      { name: "Good / Yes", emoji: "👍", states: { thumb: true, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Victory / 'V'", emoji: "✌️", states: { thumb: false, index: true, middle: true, ring: false, pinky: false } },
+      { name: "Direction", emoji: "👉", states: { thumb: true, index: true, middle: false, ring: false, pinky: false } },
+      { name: "I Love You", emoji: "🤟", states: { thumb: true, index: true, middle: false, ring: false, pinky: true } },
+      { name: "OK (ISL)", emoji: "👌", states: { thumb: false, index: false, middle: true, ring: true, pinky: true } },
+      { name: "Call Me", emoji: "🤙", states: { thumb: true, index: false, middle: false, ring: false, pinky: true } },
+      { name: "Water (ISL)", emoji: "💧", states: { thumb: false, index: true, middle: false, ring: false, pinky: false } },
+      { name: "Fist / Strength", emoji: "✊", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Namaste / Stop", emoji: "👋", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "Yes", emoji: "✊", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Please", emoji: "🙏", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "House / Roof", emoji: "🏠", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "Book / Read", emoji: "📖", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } }
+    ] : [
+      { name: "Thumbs Up", emoji: "👍", states: { thumb: true, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Peace / 'V'", emoji: "✌️", states: { thumb: false, index: true, middle: true, ring: false, pinky: false } },
+      { name: "L Sign", emoji: "👉", states: { thumb: true, index: true, middle: false, ring: false, pinky: false } },
+      { name: "I Love You", emoji: "🤟", states: { thumb: true, index: true, middle: false, ring: false, pinky: true } },
+      { name: "OK", emoji: "👌", states: { thumb: false, index: false, middle: true, ring: true, pinky: true } },
+      { name: "Call Me", emoji: "🤙", states: { thumb: true, index: false, middle: false, ring: false, pinky: true } },
+      { name: "Fist / 'A'", emoji: "✊", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Hello / Stop", emoji: "👋", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "Yes", emoji: "✊", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Please", emoji: "🙏", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "House / Roof", emoji: "🏠", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "Book / Read", emoji: "📖", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } }
+    ];
+
+    const customList = customGesturesRef.current.map(cg => ({ name: cg.name, emoji: cg.emoji, states: cg.states }));
+    const mergedList = [...standardList, ...customList];
+
+    const randomIdx = Math.floor(Math.random() * mergedList.length);
+    const target = mergedList[randomIdx];
+
+    setAcademyTargetSign(target);
+    setAcademyHoldProgress(0);
+  };
+
+  const startAcademy = (mode: "standard" | "timeAttack" = "standard") => {
     if (!cameraActive) {
       alert("Please activate the camera before entering the Academy practice sessions.");
       return;
     }
 
     setAcademyActive(true);
+    setAcademyMode(mode);
     setAcademyScore(0);
-    setAcademyRound(0);
     setAcademyHoldProgress(0);
 
-    appendChatMessage("SignWave Academy", "Starting practice session. Try to match the prompts on the left screen!", "signer");
-    nextAcademyRound(1, 0);
+    if (mode === "timeAttack") {
+      setAcademyRound(1);
+      setTimeAttackCountdown(60);
+      startTimeAttackTimer();
+      nextTimeAttackRound();
+    } else {
+      setAcademyRound(0);
+      appendChatMessage("SignWave Academy", "Starting practice session. Try to match the prompts on the left screen!", "signer");
+      nextAcademyRound(1, 0);
+    }
   };
 
   const stopAcademy = () => {
     setAcademyActive(false);
     if (academyIntervalRef.current) clearInterval(academyIntervalRef.current);
     if (roundTimerIntervalRef.current) clearInterval(roundTimerIntervalRef.current);
+    if (timeAttackTimerRef.current) clearInterval(timeAttackTimerRef.current);
     appendChatMessage("SignWave Academy", "Practice session ended.", "vocalist");
   };
 
@@ -783,10 +1064,12 @@ export const App: React.FC = () => {
       const updatedStats = {
         ...stats,
         roundsPlayed: stats.roundsPlayed + 1,
-        academyScore: stats.academyScore + currentScore
+        academyScore: stats.academyScore + currentScore,
+        scoreHistory: [...(stats.scoreHistory || [0]), currentScore]
       };
       setStats(updatedStats);
       localStorage.setItem("signwave_stats", JSON.stringify(updatedStats));
+      syncDatabase(customGestures, updatedStats, translationHistoryRef.current);
 
       setAcademyActive(false);
       if (academyIntervalRef.current) clearInterval(academyIntervalRef.current);
@@ -797,25 +1080,35 @@ export const App: React.FC = () => {
     setAcademyRound(roundNum);
 
     const standardList = presetRef.current === "isl" ? [
-      { name: "Good / Yes", emoji: "👍" },
-      { name: "Victory / 'V'", emoji: "✌️" },
-      { name: "Direction", emoji: "👉" },
-      { name: "I Love You", emoji: "🤟" },
-      { name: "OK (ISL)", emoji: "👌" },
-      { name: "Call Me", emoji: "🤙" },
-      { name: "Water (ISL)", emoji: "💧" },
-      { name: "Fist / Strength", emoji: "✊" }
+      { name: "Good / Yes", emoji: "👍", states: { thumb: true, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Victory / 'V'", emoji: "✌️", states: { thumb: false, index: true, middle: true, ring: false, pinky: false } },
+      { name: "Direction", emoji: "👉", states: { thumb: true, index: true, middle: false, ring: false, pinky: false } },
+      { name: "I Love You", emoji: "🤟", states: { thumb: true, index: true, middle: false, ring: false, pinky: true } },
+      { name: "OK (ISL)", emoji: "👌", states: { thumb: false, index: false, middle: true, ring: true, pinky: true } },
+      { name: "Call Me", emoji: "🤙", states: { thumb: true, index: false, middle: false, ring: false, pinky: true } },
+      { name: "Water (ISL)", emoji: "💧", states: { thumb: false, index: true, middle: false, ring: false, pinky: false } },
+      { name: "Fist / Strength", emoji: "✊", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Namaste / Stop", emoji: "👋", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "Yes", emoji: "✊", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Please", emoji: "🙏", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "House / Roof", emoji: "🏠", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "Book / Read", emoji: "📖", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } }
     ] : [
-      { name: "Thumbs Up", emoji: "👍" },
-      { name: "Peace / 'V'", emoji: "✌️" },
-      { name: "L Sign", emoji: "👉" },
-      { name: "I Love You", emoji: "🤟" },
-      { name: "OK", emoji: "👌" },
-      { name: "Call Me", emoji: "🤙" },
-      { name: "Fist / 'A'", emoji: "✊" }
+      { name: "Thumbs Up", emoji: "👍", states: { thumb: true, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Peace / 'V'", emoji: "✌️", states: { thumb: false, index: true, middle: true, ring: false, pinky: false } },
+      { name: "L Sign", emoji: "👉", states: { thumb: true, index: true, middle: false, ring: false, pinky: false } },
+      { name: "I Love You", emoji: "🤟", states: { thumb: true, index: true, middle: false, ring: false, pinky: true } },
+      { name: "OK", emoji: "👌", states: { thumb: false, index: false, middle: true, ring: true, pinky: true } },
+      { name: "Call Me", emoji: "🤙", states: { thumb: true, index: false, middle: false, ring: false, pinky: true } },
+      { name: "Fist / 'A'", emoji: "✊", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Hello / Stop", emoji: "👋", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "Yes", emoji: "✊", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+      { name: "Please", emoji: "🙏", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "House / Roof", emoji: "🏠", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+      { name: "Book / Read", emoji: "📖", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } }
     ];
 
-    const customList = customGesturesRef.current.map(cg => ({ name: cg.name, emoji: cg.emoji }));
+    const customList = customGesturesRef.current.map(cg => ({ name: cg.name, emoji: cg.emoji, states: cg.states }));
     const mergedList = [...standardList, ...customList];
 
     const randomIdx = Math.floor(Math.random() * mergedList.length);
@@ -857,12 +1150,18 @@ export const App: React.FC = () => {
             const next = Math.min(100, prev + 5);
             if (next >= 100 && prev < 100) {
               setTimeout(() => {
-                clearInterval(roundTimerIntervalRef.current);
+                if (academyModeRef.current !== "timeAttack") {
+                  clearInterval(roundTimerIntervalRef.current);
+                }
                 setAcademyScore(s => {
                   const nextScore = s + 1;
                   playSuccessChime();
-                  appendChatMessage("SignWave Academy", `🎯 Correctly held gesture: "${targetName}"!`, "signer");
-                  nextAcademyRound(academyRound + 1, nextScore);
+                  appendChatMessage("SignWave Academy", `🎯 Match: "${targetName}"!`, "signer");
+                  if (academyModeRef.current === "timeAttack") {
+                    nextTimeAttackRound();
+                  } else {
+                    nextAcademyRound(academyRoundRef.current + 1, nextScore);
+                  }
                   return nextScore;
                 });
               }, 50);
@@ -889,6 +1188,9 @@ export const App: React.FC = () => {
     if (wordToAdd.includes(" / ")) {
       wordToAdd = wordToAdd.split(" / ")[0];
     }
+    if (wordToAdd.includes(" (")) {
+      wordToAdd = wordToAdd.split(" (")[0];
+    }
 
     setSentence(prev => prev ? `${prev} ${wordToAdd}` : wordToAdd);
 
@@ -907,6 +1209,32 @@ export const App: React.FC = () => {
     setTranslatedText("Original English sentence...");
   };
 
+  const copyHistoryToClipboard = () => {
+    if (translationHistory.length === 0) return;
+    const text = translationHistory.join("\n");
+    navigator.clipboard.writeText(text);
+    alert("Translation history copied to clipboard!");
+  };
+
+  const exportHistoryFile = () => {
+    if (translationHistory.length === 0) return;
+    const text = translationHistory.join("\n");
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `signwave_translation_history_${Date.now()}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const clearHistory = () => {
+    if (window.confirm("Are you sure you want to clear your translation history?")) {
+      setTranslationHistory([]);
+      syncDatabase(customGestures, stats, []);
+    }
+  };
+
   const speakSentence = async () => {
     let text = sentence.trim();
     if (!text) return;
@@ -916,6 +1244,7 @@ export const App: React.FC = () => {
     }
 
     const targetLang = outputSpeechLang;
+    let spokenText = text;
 
     if (targetLang === "en") {
       appendChatMessage("Signer", text, "signer");
@@ -930,6 +1259,7 @@ export const App: React.FC = () => {
       setTranslatedText("Translating...");
       const translated = await Speech.translate(text, targetLang);
       setTranslatedText(translated);
+      spokenText = translated;
       appendChatMessage("Signer (Translated)", `${translated} ("${text}")`, "signer");
 
       const voiceAccents: Record<string, string> = { es: "es-ES", fr: "fr-FR", de: "de-DE", ja: "ja-JP" };
@@ -943,6 +1273,13 @@ export const App: React.FC = () => {
         () => { setIsSpeaking(false); }
       );
     }
+
+    // Append to Translation History & sync
+    setTranslationHistory(prev => {
+      const updated = [...prev, spokenText];
+      syncDatabase(customGestures, stats, updated);
+      return updated;
+    });
   };
 
   // Run async translation on sentence changes
@@ -1340,6 +1677,25 @@ export const App: React.FC = () => {
                   className="w-full px-3 py-2 bg-black/25 border border-[var(--border-color)] rounded-[var(--radius-sm)] text-[var(--text-primary)] text-sm outline-none transition-[var(--transition)]"
                 />
 
+                {currentGesture && currentGesture.isPresetPreview && (
+                  <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-[var(--radius-sm)] text-center relative flex flex-col items-center animate-[float_3s_ease-in-out_infinite] mb-1">
+                    <button
+                      className="absolute top-1.5 right-1.5 text-xs opacity-60 hover:opacity-100 cursor-pointer"
+                      onClick={() => setCurrentGesture({ name: "Camera Off", emoji: "📷", description: "Start camera to scan gestures." })}
+                    >
+                      ✕
+                    </button>
+                    <div className="text-3xl mb-1">{currentGesture.emoji}</div>
+                    <div className="font-bold text-sm text-[var(--accent)]">{currentGesture.name}</div>
+                    <p className="text-[10px] text-[var(--text-secondary)] mb-2 max-w-[240px]">{currentGesture.description}</p>
+                    
+                    {/* SVG Hand Blueprint */}
+                    <div className="bg-black/30 rounded-lg p-2 max-w-[140px] w-full border border-white/5 shadow-inner">
+                      <HandBlueprint states={currentGesture.states} />
+                    </div>
+                  </div>
+                )}
+
                 <div className="guide-list max-h-[380px] overflow-y-auto pr-1">
                   {filteredCustomDict.length > 0 && (
                     <>
@@ -1405,19 +1761,57 @@ export const App: React.FC = () => {
                 </p>
 
                 {!academyActive ? (
-                  <div className="mic-control-card p-3 bg-cyan-500/5 border-cyan-500/20">
-                    <span className="text-3xl">🎯</span>
-                    <h3 className="text-sm font-semibold mt-1">Practice Gestures</h3>
-                    <button onClick={startAcademy} className="primary px-4 py-1.5 text-xs mt-2">
-                      Start Practice Mode
-                    </button>
+                  <div className="flex flex-col gap-3">
+                    {/* Mode Selector */}
+                    <div className="flex gap-2 p-1 bg-black/25 rounded border border-[var(--border-color)]">
+                      <button
+                        onClick={() => setAcademyMode("standard")}
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded transition-[var(--transition)] cursor-pointer ${academyMode === "standard" ? "bg-cyan-500/20 text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}
+                      >
+                        🎓 Standard Quiz
+                      </button>
+                      <button
+                        onClick={() => setAcademyMode("timeAttack")}
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded transition-[var(--transition)] cursor-pointer ${academyMode === "timeAttack" ? "bg-cyan-500/20 text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}
+                      >
+                        ⏱️ Time-Attack
+                      </button>
+                    </div>
+
+                    <div className="mic-control-card p-4 bg-cyan-500/5 border border-cyan-500/20 text-center flex flex-col items-center">
+                      <span className="text-4xl">🎯</span>
+                      <h3 className="text-sm font-bold mt-2">
+                        {academyMode === "standard" ? "Standard Quiz (5 Rounds)" : "Time-Attack Game Mode (60s)"}
+                      </h3>
+                      <p className="text-[10px] text-[var(--text-secondary)] max-w-xs mt-1">
+                        {academyMode === "standard"
+                          ? "Match 5 random gestures. Take your time to align your hand with the AI tracker."
+                          : "Race against the clock! Correctly form as many signs as possible within 60 seconds."}
+                      </p>
+                      
+                      {academyMode === "timeAttack" && (stats.highScoreTimeAttack || 0) > 0 && (
+                        <div className="text-xs text-[var(--accent)] font-bold mt-2">
+                          🔥 Personal Best: {stats.highScoreTimeAttack} correct
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => startAcademy(academyMode)}
+                        className="primary px-6 py-2 text-xs font-bold mt-3 shadow-[0_0_12px_rgba(6,182,212,0.3)] cursor-pointer"
+                      >
+                        Start Practice Session
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="mic-control-card p-4 bg-black/25 text-left items-stretch">
                     <div className="flex justify-between text-xs text-[var(--text-secondary)] mb-2">
-                      <span>ACADEMY QUIZ</span>
+                      <span>{academyMode === "timeAttack" ? "⏱️ TIME ATTACK" : "🎓 ACADEMY QUIZ"}</span>
                       <span className="font-bold text-[var(--accent)]">
-                        Round: {academyRound}/5 | Score: {academyScore}
+                        {academyMode === "timeAttack" 
+                          ? `Time Left: ${timeAttackCountdown}s | Score: ${academyScore}`
+                          : `Round: ${academyRound}/5 | Score: ${academyScore}`
+                        }
                       </span>
                     </div>
 
@@ -1435,8 +1829,8 @@ export const App: React.FC = () => {
 
                     <div className="mt-2">
                       <div className="flex justify-between text-[10px] text-[var(--text-secondary)] mb-1">
-                        <span>Hold Position...</span>
-                        <span>{academyTimer}s</span>
+                        <span>{academyMode === "timeAttack" ? "Match Progress..." : `Hold Position... (${academyTimer}s)`}</span>
+                        <span>{academyHoldProgress}%</span>
                       </div>
                       <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden border border-[var(--border-color)]">
                         <div
@@ -1446,7 +1840,7 @@ export const App: React.FC = () => {
                       </div>
                     </div>
 
-                    <button onClick={stopAcademy} className="danger py-1.5 text-xs mt-3.5 w-full justify-center">
+                    <button onClick={stopAcademy} className="danger py-1.5 text-xs mt-3.5 w-full justify-center cursor-pointer">
                       Quit Practice
                     </button>
                   </div>
@@ -1525,6 +1919,8 @@ export const App: React.FC = () => {
                     )}
                   </button>
                 </div>
+
+                <ProgressChart history={stats.scoreHistory} />
               </div>
             )}
           </section>
@@ -1725,6 +2121,46 @@ export const App: React.FC = () => {
                   🗑️ Clear
                 </button>
               </div>
+
+              {/* Persistent Translation History Log */}
+              {translationHistory.length > 0 && (
+                <div className="flex flex-col gap-2.5 bg-black/20 p-3 rounded-[var(--radius-sm)] border border-[var(--border-color)] mt-3 text-left">
+                  <div className="flex justify-between items-center w-full">
+                    <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold">📜 Spoken Sentences History</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={copyHistoryToClipboard}
+                        className="py-1 px-2 text-[9px] font-bold bg-cyan-500/10 border border-cyan-500/20 text-[var(--accent)] rounded-[var(--radius-sm)] hover:bg-cyan-500/20 transition-[var(--transition)] cursor-pointer"
+                        title="Copy to clipboard"
+                      >
+                        📋 Copy
+                      </button>
+                      <button
+                        onClick={exportHistoryFile}
+                        className="py-1 px-2 text-[9px] font-bold bg-cyan-500/10 border border-cyan-500/20 text-[var(--accent)] rounded-[var(--radius-sm)] hover:bg-cyan-500/20 transition-[var(--transition)] cursor-pointer"
+                        title="Export as file"
+                      >
+                        📥 Export
+                      </button>
+                      <button
+                        onClick={clearHistory}
+                        className="py-1 px-2 text-[9px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 rounded-[var(--radius-sm)] hover:bg-red-500/20 transition-[var(--transition)] cursor-pointer"
+                        title="Clear history"
+                      >
+                        🗑️ Clear
+                      </button>
+                    </div>
+                  </div>
+                  <div className="max-h-[110px] overflow-y-auto pr-1 flex flex-col gap-1.5 text-xs text-[var(--text-primary)] font-mono leading-relaxed bg-black/10 p-2 rounded border border-white/5">
+                    {translationHistory.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-start py-0.5 border-b border-white/5 last:border-b-0">
+                        <span className="text-[var(--accent)] opacity-60 font-bold">{idx + 1}.</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
           </section>

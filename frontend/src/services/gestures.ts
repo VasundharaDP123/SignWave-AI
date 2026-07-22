@@ -22,31 +22,40 @@ export interface GestureDefinition {
 }
 
 export const ASL_DICTIONARY: GestureDefinition[] = [
-  { name: "Hello / Stop", emoji: "👋", description: "All fingers extended straight" },
-  { name: "Fist / 'A'", emoji: "✊", description: "All fingers folded in a fist" },
-  { name: "I Love You", emoji: "🤟", description: "Thumb, Index, Pinky extended" },
-  { name: "Peace / 'V'", emoji: "✌️", description: "Index & Middle extended" },
-  { name: "L Sign", emoji: "👉", description: "Thumb and Index form an L" },
-  { name: "Pointing / '1'", emoji: "☝️", description: "Only Index finger extended" },
-  { name: "OK", emoji: "👌", description: "Thumb & Index tips touching" },
-  { name: "Thumbs Up", emoji: "👍", description: "Thumb up, others folded" },
-  { name: "Thumbs Down", emoji: "👎", description: "Thumb down, others folded" },
-  { name: "Rock On", emoji: "🤘", description: "Index & Pinky extended" },
-  { name: "Call Me", emoji: "🤙", description: "Thumb & Pinky extended" }
+  { name: "Hello / Stop", emoji: "👋", description: "All fingers extended straight (or waved)", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+  { name: "Yes", emoji: "✊", description: "Nodding closed fist up and down", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+  { name: "Please", emoji: "🙏", description: "Prayer hands pressed together", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+  { name: "Fist / 'A'", emoji: "✊", description: "All fingers folded in a fist", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+  { name: "I Love You", emoji: "🤟", description: "Thumb, Index, Pinky extended", states: { thumb: true, index: true, middle: false, ring: false, pinky: true } },
+  { name: "Peace / 'V'", emoji: "✌️", description: "Index & Middle extended", states: { thumb: false, index: true, middle: true, ring: false, pinky: false } },
+  { name: "L Sign", emoji: "👉", description: "Thumb and Index form an L", states: { thumb: true, index: true, middle: false, ring: false, pinky: false } },
+  { name: "Pointing / '1'", emoji: "☝️", description: "Only Index finger extended", states: { thumb: false, index: true, middle: false, ring: false, pinky: false } },
+  { name: "OK", emoji: "👌", description: "Thumb & Index tips touching", states: { thumb: false, index: false, middle: true, ring: true, pinky: true } },
+  { name: "Thumbs Up", emoji: "👍", description: "Thumb up, others folded", states: { thumb: true, index: false, middle: false, ring: false, pinky: false } },
+  { name: "Thumbs Down", emoji: "👎", description: "Thumb down, others folded", states: { thumb: true, index: false, middle: false, ring: false, pinky: false } },
+  { name: "Rock On", emoji: "🤘", description: "Index & Pinky extended", states: { thumb: false, index: true, middle: false, ring: false, pinky: true } },
+  { name: "Call Me", emoji: "🤙", description: "Thumb & Pinky extended", states: { thumb: true, index: false, middle: false, ring: false, pinky: true } },
+  { name: "Letter 'W' / '3'", emoji: "👌", description: "Index, Middle, Ring extended", states: { thumb: false, index: true, middle: true, ring: true, pinky: false } },
+  { name: "House / Roof", emoji: "🏠", description: "Index tips touching, wrists apart (two hands)", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+  { name: "Book / Read", emoji: "📖", description: "Palms placed side-by-side like an open book", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } }
 ];
 
 export const ISL_DICTIONARY: GestureDefinition[] = [
-  { name: "Namaste / Stop", emoji: "👋", description: "Flat open palm greeting or halt" },
-  { name: "Fist / Strength", emoji: "✊", description: "All fingers folded in a fist" },
-  { name: "I Love You", emoji: "🤟", description: "Thumb, Index, Pinky extended" },
-  { name: "Victory / 'V'", emoji: "✌️", description: "Index & Middle extended" },
-  { name: "Direction", emoji: "👉", description: "Thumb and Index form an L" },
-  { name: "Water (ISL)", emoji: "💧", description: "Index pointing to mouth/chin" },
-  { name: "OK (ISL)", emoji: "👌", description: "Thumb & Index tips touching" },
-  { name: "Good / Yes", emoji: "👍", description: "Thumb up, others folded" },
-  { name: "Bad / No", emoji: "👎", description: "Thumb down, others folded" },
-  { name: "Horns / Rock", emoji: "🤘", description: "Index & Pinky extended" },
-  { name: "Call Me", emoji: "🤙", description: "Thumb & Pinky extended" }
+  { name: "Namaste / Stop", emoji: "👋", description: "Flat open palm greeting or halt", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+  { name: "Yes", emoji: "✊", description: "Nodding closed fist up and down", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+  { name: "Please", emoji: "🙏", description: "Prayer hands pressed together", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+  { name: "Fist / Strength", emoji: "✊", description: "All fingers folded in a fist", states: { thumb: false, index: false, middle: false, ring: false, pinky: false } },
+  { name: "I Love You", emoji: "🤟", description: "Thumb, Index, Pinky extended", states: { thumb: true, index: true, middle: false, ring: false, pinky: true } },
+  { name: "Victory / 'V'", emoji: "✌️", description: "Index & Middle extended", states: { thumb: false, index: true, middle: true, ring: false, pinky: false } },
+  { name: "Direction", emoji: "👉", description: "Thumb and Index form an L", states: { thumb: true, index: true, middle: false, ring: false, pinky: false } },
+  { name: "Water (ISL)", emoji: "💧", description: "Index pointing to mouth/chin", states: { thumb: false, index: true, middle: false, ring: false, pinky: false } },
+  { name: "OK (ISL)", emoji: "👌", description: "Thumb & Index tips touching", states: { thumb: false, index: false, middle: true, ring: true, pinky: true } },
+  { name: "Good / Yes", emoji: "👍", description: "Thumb up, others folded", states: { thumb: true, index: false, middle: false, ring: false, pinky: false } },
+  { name: "Bad / No", emoji: "👎", description: "Thumb down, others folded", states: { thumb: true, index: false, middle: false, ring: false, pinky: false } },
+  { name: "Horns / Rock", emoji: "🤘", description: "Index & Pinky extended", states: { thumb: false, index: true, middle: false, ring: false, pinky: true } },
+  { name: "Call Me", emoji: "🤙", description: "Thumb & Pinky extended", states: { thumb: true, index: false, middle: false, ring: false, pinky: true } },
+  { name: "House / Roof", emoji: "🏠", description: "Index tips touching, wrists apart (two hands)", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } },
+  { name: "Book / Read", emoji: "📖", description: "Palms placed side-by-side like an open book", states: { thumb: true, index: true, middle: true, ring: true, pinky: true } }
 ];
 
 export function getDistance(pt1: Landmark | undefined, pt2: Landmark | undefined): number {
@@ -90,14 +99,16 @@ export function predictGesture(
   if (palmSize === 0) return { name: "Analyzing...", emoji: "🤔", description: "Hold hand steady." };
 
   // Determine finger extensions relative to wrist/MCP distance (extremely robust, self-normalizing)
-  const isIndexExtended = getDistance(indexTip, wrist) > getDistance(indexPIP, wrist);
-  const isMiddleExtended = getDistance(middleTip, wrist) > getDistance(middlePIP, wrist);
-  const isRingExtended = getDistance(ringTip, wrist) > getDistance(ringPIP, wrist);
-  const isPinkyExtended = getDistance(pinkyTip, wrist) > getDistance(pinkyPIP, wrist);
+  // Check both wrist-relative extension and finger MCP-relative length
+  const isIndexExtended = getDistance(indexTip, wrist) > getDistance(indexPIP, wrist) && getDistance(indexTip, indexMCP) > (palmSize * 0.60);
+  const isMiddleExtended = getDistance(middleTip, wrist) > getDistance(middlePIP, wrist) && getDistance(middleTip, middleMCP) > (palmSize * 0.60);
+  const isRingExtended = getDistance(ringTip, wrist) > getDistance(ringPIP, wrist) && getDistance(ringTip, landmarks[13]) > (palmSize * 0.60);
+  const isPinkyExtended = getDistance(pinkyTip, wrist) > getDistance(pinkyPIP, wrist) && getDistance(pinkyTip, landmarks[17]) > (palmSize * 0.45);
 
   // Thumb is extended if it is pushed away from the side of the palm (index MCP)
+  // and is straight (tip further from its MCP joint at landmark 2)
   const thumbDistanceToIndexMCP = getDistance(thumbTip, indexMCP);
-  const isThumbExtended = thumbDistanceToIndexMCP > (palmSize * 0.65);
+  const isThumbExtended = thumbDistanceToIndexMCP > (palmSize * 0.50) && getDistance(thumbTip, landmarks[2]) > (palmSize * 0.35);
 
   // Active finger configuration
   const states: FingerStates = {
@@ -133,7 +144,7 @@ export function predictGesture(
   const thumbIndexTipDist = getDistance(thumbTip, indexTip);
 
   // OK Sign
-  if (thumbIndexTipDist < (palmSize * 0.25) && isMiddleExtended && isRingExtended && isPinkyExtended) {
+  if (thumbIndexTipDist < (palmSize * 0.38) && isMiddleExtended && isRingExtended && isPinkyExtended) {
     return {
       name: presetName === "isl" ? "OK (ISL)" : "OK",
       emoji: "👌",
@@ -142,8 +153,8 @@ export function predictGesture(
     };
   }
 
-  // Hello / Stop / Namaste
-  if (isThumbExtended && isIndexExtended && isMiddleExtended && isRingExtended && isPinkyExtended) {
+  // Hello / Stop / Namaste (Thumb check relaxed to allow natural open hand/stop shape)
+  if (isIndexExtended && isMiddleExtended && isRingExtended && isPinkyExtended) {
     return {
       name: presetName === "isl" ? "Namaste / Stop" : "Hello / Stop",
       emoji: "👋",
@@ -172,8 +183,8 @@ export function predictGesture(
     };
   }
 
-  // Peace Sign / Victory
-  if (!isThumbExtended && isIndexExtended && isMiddleExtended && !isRingExtended && !isPinkyExtended) {
+  // Peace Sign / Victory (Thumb relaxed)
+  if (isIndexExtended && isMiddleExtended && !isRingExtended && !isPinkyExtended) {
     return {
       name: presetName === "isl" ? "Victory / 'V'" : "Peace / 'V'",
       emoji: "✌️",

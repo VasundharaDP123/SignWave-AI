@@ -350,6 +350,14 @@ export class SpeechService {
 
     let processed = sentenceText.trim().toLowerCase();
 
+    // Standardize gesture text representations for grammar mapping
+    processed = processed.replace(/\bthumbs up\b/g, "good");
+    processed = processed.replace(/\bthumbs down\b/g, "bad");
+    processed = processed.replace(/\bl sign\b/g, "l");
+    processed = processed.replace(/\bpointing\b/g, "pointing");
+    processed = processed.replace(/\bvictory\b/g, "peace");
+    processed = processed.replace(/\bnamaste\b/g, "hello");
+
     // Grammar corrections dictionary
     const mappings = [
       { pattern: /\b(hello stop)\b/gi, replacement: "hello" },
